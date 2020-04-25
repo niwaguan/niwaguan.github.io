@@ -435,12 +435,12 @@ changyan:
 
 # Support for gitalk comments system.
 gitalk:
-  enable: false
-  clientID: # 54730ddf7b9420460c03
-  clientSecret: # c05684701b25ff1c19ea0c01ce4d80c125e0707d
-  repo: # colingpt.github.io
-  owner: # colingpt
-  admin: # colingpt
+  enable: ture
+  clientID: a00d9686236e7ed971a0
+  clientSecret: c0a8ac185add0ded89e26e5c31c2bcdad25cecbd
+  repo: niwaguan.github.io.git
+  owner: niwaguan
+  admin: niwaguan
 
 # Baidu Share
 # Available value:
@@ -727,7 +727,11 @@ vendors:
   # Internal version: 3.3.0
   # https://github.com/ethantw/Han
   han:
+  
+  # custom
 
+  # md5
+  md5:
 
 # Assets
 css: assets/css
