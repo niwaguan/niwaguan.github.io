@@ -438,7 +438,7 @@ gitalk:
   enable: ture
   clientID: a00d9686236e7ed971a0
   clientSecret: c0a8ac185add0ded89e26e5c31c2bcdad25cecbd
-  repo: niwaguan.github.io.git
+  repo: niwaguan.github.io
   owner: niwaguan
   admin: niwaguan
 
