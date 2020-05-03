@@ -1,4 +1,4 @@
-{% if site.post_copyright.enable %}
+{% if site.post_copyright.enable and page.copyright != false %}
   <ul class="post-copyright">
     <li class="post-copyright-author">
       <strong>{{ __.post.copyright.author | append: __.symbol.colon }}</strong>
