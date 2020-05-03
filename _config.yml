@@ -105,7 +105,7 @@ copyright: true
 canonical: true
 
 # Change headers hierarchy on site-subtitle (will be main site description) and on all post/pages titles for better SEO-optimization.
-seo: false
+seo: true
 
 # If true, will add site-subtitle to index page, added in jekyll config.
 # subtitle: Subtitle
@@ -373,7 +373,7 @@ han: false
 #swiftype_key:
 
 # Baidu Analytics ID
-baidu_analytics: 82dce536707c0e907a34d290283096f4
+baidu_analytics: 1229acb4f6728e0ce6775dbacad010d3
 
 # Duoshuo ShortName
 #duoshuo_shortname:
@@ -462,7 +462,7 @@ gitalk:
 google_site_verification: fUl8N6Ww2iCeBSotVE3-sQzX1thrFhsc2wFtbJzhm_w
 
 # Google Analytics
-#google_analytics:
+google_analytics: UA-165377571-1
 
 # Yandex Webmaster tools verification setting
 # See: https://webmaster.yandex.ru/
