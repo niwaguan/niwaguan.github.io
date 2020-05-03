@@ -12,4 +12,7 @@ Thumbs.db
 .rbenv-version
 .rvmrc
 /vendor
+
+# MWeb
 /_posts/media
+/_posts/.MWebMetaData
