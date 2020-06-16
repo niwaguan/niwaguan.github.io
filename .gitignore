@@ -14,5 +14,5 @@ Thumbs.db
 /vendor
 
 # MWeb
-/_posts/media
-/_posts/.MWebMetaData
+/_draft/media
+.MWebMetaData/
