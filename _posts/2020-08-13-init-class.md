@@ -8,8 +8,6 @@ tags:
   - Runtime
 ---
 
-
-
 ## 起源 _objc_init
 
 > 严格来说`_objc_init`并不是最开始的起点，`_dyld_start`才是。这里暂不讨论`dyld`的加载。
