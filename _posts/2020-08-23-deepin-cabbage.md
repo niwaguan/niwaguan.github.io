@@ -271,10 +271,6 @@ timeline.overlays.forEach { (provider) in
 }
 ```
 
-##### 配音等附件音频的安排
-
-对应类似配音或音效资源的处理，每个资源会单独占据一个轨道。根据`AVFoundation`
-
 #### buildVideoComposition
 
 该阶段，主要生成`AVVideoComposition`对象，对视频进行控制。分为2个主要步骤：
