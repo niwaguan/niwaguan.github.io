@@ -25,17 +25,16 @@ struct objc_class : objc_object {
     Class superclass;
     cache_t cache;             // formerly cache pointer and vtable
     class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
-    
+
     class_rw_t *data() const {
         return bits.data();
     }
     ...
-} 
+}
 ```
 
 下面就一起来看看该结构体的具体成员。参考下图：
-![class-obj-fields](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/classobjfields.png)
-
+![class-obj-fields](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/classobjfields.png)
 
 ## isa - 我是谁
 
@@ -76,20 +75,20 @@ union isa_t {
 
 首先，看看这两种类型所占用的内存大小是否一样。
 
-`union isa_t`结构体有3个成员：
+`union isa_t`结构体有 3 个成员：
 
-* `Class cls;` Class 本质上是指针，占8字节。
-* `uintptr_t bits;` `uintptr_t` 本质是`unsigned long`的typedef，占8字节。
-* `匿名结构体` 这里使用了位域，加起来一共64bit，也是8字节。
+- `Class cls;` Class 本质上是指针，占 8 字节。
+- `uintptr_t bits;` `uintptr_t` 本质是`unsigned long`的 typedef，占 8 字节。
+- `匿名结构体` 这里使用了位域，加起来一共 64bit，也是 8 字节。
 
-根据联合体size的大小计算规则，整个联合体的大小是8字节，和之前看到的Class类型的isa并无差别，它们占用的内存大小相同。
+根据联合体 size 的大小计算规则，整个联合体的大小是 8 字节，和之前看到的 Class 类型的 isa 并无差别，它们占用的内存大小相同。
 
-可以理解为对这8字节的内存解读方式的区别。如果按Class解读这8字节，那么这块内存就只能存储一个地址了；如果按这种怪异的方式解读，相比之下存储的信息就多了，具体见下图：
-![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/isa64bit.png)
+可以理解为对这 8 字节的内存解读方式的区别。如果按 Class 解读这 8 字节，那么这块内存就只能存储一个地址了；如果按这种怪异的方式解读，相比之下存储的信息就多了，具体见下图：
+![](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/isa64bit.png)
 
 其次，为什么会设计出这个怪异的结构。
 
-在上面的代码里，可以看到在`arm64`架构下，虚拟地址的最大值为`0x1000000000`，使用33位足够了。那么8字节（64位）的空间只用33位是不是有点可惜，那么这种怪异的结构自然也就出来了。要知道在程序运行期间，可是有无限多个对象要创建的，在这里进行`变态级的优化`，效果是非常可观的。
+在上面的代码里，可以看到在`arm64`架构下，虚拟地址的最大值为`0x1000000000`，使用 33 位足够了。那么 8 字节（64 位）的空间只用 33 位是不是有点可惜，那么这种怪异的结构自然也就出来了。要知道在程序运行期间，可是有无限多个对象要创建的，在这里进行`变态级的优化`，效果是非常可观的。
 
 ## superclass - 我从哪里来
 
@@ -108,7 +107,7 @@ struct cache_t {
 }
 ```
 
-在这个散列表中的每一个元素`bucket_t`，存储了一个方法的SEL，和IMP。
+在这个散列表中的每一个元素`bucket_t`，存储了一个方法的 SEL，和 IMP。
 
 ```c++
 typedef uintptr_t cache_key_t;
@@ -123,19 +122,19 @@ struct bucket_t {
 
 ```c++
 // 哈希函数，直接使用SEL和mask做&运算
-static inline mask_t cache_hash(SEL sel, mask_t mask) 
+static inline mask_t cache_hash(SEL sel, mask_t mask)
 {
     return (mask_t)(uintptr_t)sel & mask;
 }
 ```
 
-这里有个注意点，`一个数和mask&运算的结果<=mask`。mask也间接反映了`cache_t`中缓存方法的数量：
+这里有个注意点，`一个数和mask&运算的结果<=mask`。mask 也间接反映了`cache_t`中缓存方法的数量：
 
 ```c++
 // 获取容量 mask + 1
-mask_t cache_t::capacity() 
+mask_t cache_t::capacity()
 {
-    return mask() ? mask()+1 : 0; 
+    return mask() ? mask()+1 : 0;
 }
 ```
 
@@ -166,13 +165,14 @@ static inline mask_t cache_next(mask_t i, mask_t mask) {
 
 该字段存储了一个类相关的具体信息，比如方法列表、协议列表，属性等。
 
-`bits`的类型为`class_data_bits_t`，它只是封装了`class_rw_t`（类的可读写数据）和自定义的标识以及操作内部数据的方法。这个结构体只有一个成员`bits`，占用8字节的内存。其中这个`class_rw_t* data()`方法可以获取类的可读写数据：
+`bits`的类型为`class_data_bits_t`，它只是封装了`class_rw_t`（类的可读写数据）和自定义的标识以及操作内部数据的方法。这个结构体只有一个成员`bits`，占用 8 字节的内存。其中这个`class_rw_t* data()`方法可以获取类的可读写数据：
 
 ```
 class_rw_t* data() const {
     return (class_rw_t *)(bits & FAST_DATA_MASK);
 }
 ```
+
 看来这个`bits`成员也存储了不止一种数据。有兴趣的可以可以查看`objc-runtime-new.h`文件中`FAST_`开头的宏定义。每一个宏和`bits`进行`&`运算都可以得到相应的信息。
 
 ### class_rw_t
@@ -189,13 +189,14 @@ struct class_rw_t {
 }
 ```
 
-这三者的结构类似，都继承至`list_array_tt`，而`list_array_tt`是一个C++模板。一个为存储元数据的通用实现。其中，`Element`是元数据的类型，比如`method_t`；`List`是包含元数据的列表，比如`method_list_t`。`list_array_tt`类型的值有3种：
+这三者的结构类似，都继承至`list_array_tt`，而`list_array_tt`是一个 C++模板。一个为存储元数据的通用实现。其中，`Element`是元数据的类型，比如`method_t`；`List`是包含元数据的列表，比如`method_list_t`。`list_array_tt`类型的值有 3 种：
 
-* 空
-* 一个`List`指针
-* 一个数组，元素是`List`指针
+- 空
+- 一个`List`指针
+- 一个数组，元素是`List`指针
 
 下面是详细的说明，建议认真查看。
+
 ```c++
 template <typename Element, typename List>
 class list_array_tt {
@@ -228,7 +229,7 @@ class list_array_tt {
         typename List::iterator m, mEnd;
 
      public:
-        iterator(List **begin, List **end) 
+        iterator(List **begin, List **end)
             : lists(begin), listsEnd(end)
         {
             if (begin != end) {
@@ -275,7 +276,7 @@ class list_array_tt {
         List* list;
         uintptr_t arrayAndFlag; // 实际数据的地址和标志
     };
-    
+
     // 是否为多个List。多个时会将地址存储在arrayAndFlag中；单个会存储在list中
     bool hasArray() const {
         return arrayAndFlag & 1;
@@ -293,7 +294,7 @@ class list_array_tt {
     // 所有List中Element的总和
     uint32_t count() {
         uint32_t result = 0;
-        for (auto lists = beginLists(), end = endLists(); 
+        for (auto lists = beginLists(), end = endLists();
              lists != end;
              ++lists)
         {
@@ -348,16 +349,16 @@ class list_array_tt {
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
             // 将之前的List向后移动
-            memmove(array()->lists + addedCount, array()->lists, 
+            memmove(array()->lists + addedCount, array()->lists,
                     oldCount * sizeof(array()->lists[0]));
             // 保存新的Lists
-            memcpy(array()->lists, addedLists, 
+            memcpy(array()->lists, addedLists,
                    addedCount * sizeof(array()->lists[0]));
         }
         else if (!list  &&  addedCount == 1) {
             // 现在为空，并且新增一个List，直接将地址保存在list成员中
             list = addedLists[0];
-        } 
+        }
         else {
             // 当前有一个List或空，新增多个
             List* oldList = list;
@@ -369,7 +370,7 @@ class list_array_tt {
             // 如果之前有一个List，将其放到最后的位置
             if (oldList) array()->lists[addedCount] = oldList;
             // 将添加的Lists拷贝到新内存中
-            memcpy(array()->lists, addedLists, 
+            memcpy(array()->lists, addedLists,
                    addedCount * sizeof(array()->lists[0]));
         }
     }
@@ -410,11 +411,11 @@ class list_array_tt {
 总结来说，`list_array_tt`，是一个容器，直接存储的类型需要为数组（typename List），然后数组里面的元素是元数据（typename Element），并提供相应的操作方法，如迭代器，添加新的`Lists`等。
 
 一个`method_array_t`就是：
-![method_array_t](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/methodarrayt.png)
+![method_array_t](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/06/16/methodarrayt.png)
 
 `properties`和`protocols`的`List`和`Element`分别是`property_list_t - property_t`、`protocol_list_t - protocol_ref_t`
 
-再来看看`method_list_t`和`property_list_t`以及`protocol_list_t`。这三者是`list_array_tt`的直接元素。其中`method_list_t`和`property_list_t`都继承至`entsize_list_tt`。这是一个C++模板，包含了两个类型参数一个非类型参数。这是一个具有`non-fragile`特性[^1]的数组通用实现。下面是具体的解读：
+再来看看`method_list_t`和`property_list_t`以及`protocol_list_t`。这三者是`list_array_tt`的直接元素。其中`method_list_t`和`property_list_t`都继承至`entsize_list_tt`。这是一个 C++模板，包含了两个类型参数一个非类型参数。这是一个具有`non-fragile`特性[^1]的数组通用实现。下面是具体的解读：
 
 ```c++
 template <typename Element, typename List, uint32_t FlagMask>
@@ -431,11 +432,11 @@ struct entsize_list_tt {
         return entsizeAndFlags & FlagMask;
     }
     // 随机读取支持
-    Element& getOrEnd(uint32_t i) const { 
+    Element& getOrEnd(uint32_t i) const {
         ASSERT(i <= count);
-        return *(Element *)((uint8_t *)&first + i*entsize()); 
+        return *(Element *)((uint8_t *)&first + i*entsize());
     }
-    Element& get(uint32_t i) const { 
+    Element& get(uint32_t i) const {
         ASSERT(i < count);
         return getOrEnd(i);
     }
@@ -455,7 +456,7 @@ struct entsize_list_tt {
         std::copy(begin(), end(), dup->begin());
         return dup;
     }
-    
+
     // 迭代器,参考源码
     struct iterator;
 }
@@ -464,31 +465,33 @@ struct entsize_list_tt {
 `protocol_list_t`是一个单独实现的结构体。只包含了记录数量，内存地址成员，以及迭代方法等。
 
 好了，容器解决了。再瞅瞅具体的元数据。
-* method_t
 
-    ```c++
-    struct method_t {
-        SEL name;
-        const char *types;
-        MethodListIMP imp;
-    }
-    ```
-    `method_t`描述了一个方法的基本信息，如：名称、编码类型[^2]、具体实现。
+- method_t
 
-* property_t
+  ```c++
+  struct method_t {
+      SEL name;
+      const char *types;
+      MethodListIMP imp;
+  }
+  ```
 
-    ```c++
-    struct property_t {
-        const char *name;
-        const char *attributes;
-    };
-    ```
-    
-    主要包含名称，以及对应的属性（类型，内存管理方式，对应实例变量名称等）。
+  `method_t`描述了一个方法的基本信息，如：名称、编码类型[^2]、具体实现。
 
-* protocol_ref_t
+- property_t
 
-    `protocol_ref_t`是一个指针，指向`struct protocol_t`。它也继承至`objc_object`。主要有协议名称、遵循的协议列表、（可选）实例方法、（可选）类方法、实例属性等内容。
+  ```c++
+  struct property_t {
+      const char *name;
+      const char *attributes;
+  };
+  ```
+
+  主要包含名称，以及对应的属性（类型，内存管理方式，对应实例变量名称等）。
+
+- protocol_ref_t
+
+  `protocol_ref_t`是一个指针，指向`struct protocol_t`。它也继承至`objc_object`。主要有协议名称、遵循的协议列表、（可选）实例方法、（可选）类方法、实例属性等内容。
 
 ### class_ro_t
 
@@ -504,7 +507,7 @@ struct class_ro_t {
 #endif
 
     const uint8_t * ivarLayout;
-    
+
     const char * name; // 类名称
     method_list_t * baseMethodList; // 原始类中的方法
     protocol_list_t * baseProtocols; // 原始类中的协议
@@ -549,9 +552,9 @@ struct ivar_t {
 #if __x86_64__
     // *offset was originally 64-bit on some x86_64 platforms.
     // We read and write only 32 bits of it.
-    // Some metadata provides all 64 bits. This is harmless for unsigned 
+    // Some metadata provides all 64 bits. This is harmless for unsigned
     // little-endian values.
-    // Some code uses all 64 bits. class_addIvar() over-allocates the 
+    // Some code uses all 64 bits. class_addIvar() over-allocates the
     // offset for their benefit.
 #endif
     int32_t *offset; // 地址相对于实例对象的偏移量
@@ -570,10 +573,9 @@ struct ivar_t {
 
 ## 总结
 
-`Runtime`的学习就是理解其中的数据结构，以及如何使用这些数据结构。该篇和之前的[理解Objective-C中的对象](https://waguan.cc/ios/2020/04/29/object/)介绍了实例对象和类对象对应的结构，是后续学习的基础。共勉！
+`Runtime`的学习就是理解其中的数据结构，以及如何使用这些数据结构。该篇和之前的[理解 Objective-C 中的对象](https://waguan.cc/ios/2020/04/29/object/)介绍了实例对象和类对象对应的结构，是后续学习的基础。共勉！
 
 ## 参考
 
 [^1]: http://www.sealiesoftware.com/blog/archive/2009/01/27/objc_explain_Non-fragile_ivars.html
-
 [^2]: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1

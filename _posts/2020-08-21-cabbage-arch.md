@@ -15,19 +15,19 @@ tags:
 
 ### 数据源
 
-![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973730309246.jpg)
+![](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973730309246.jpg)
 
 `AVAsset`是一个抽象类，代表了一个媒体资源，如一个视频或一个音频。通过该类，我们可以获取一个媒体资源的相关信息，如时长、轨道等。由于是一个抽象类，所以我们不会直接使用该类。
 
-`AVURLAsset`是`AVAsset`的一个子类，负责从指定URL中加载媒体资源。最常使用的也就是它。`AVAsset`提供的有一个便利构造`+assetWithURL:`，实际上返回的就是`AVURLAsset`的实例。
+`AVURLAsset`是`AVAsset`的一个子类，负责从指定 URL 中加载媒体资源。最常使用的也就是它。`AVAsset`提供的有一个便利构造`+assetWithURL:`，实际上返回的就是`AVURLAsset`的实例。
 
-我们通过URL初始化一个`AVAsset`对象后，其大部分属性值并没有准备好，若访问了一个未准备好的属性（比如时长）会触发`AVAsset`去更新这些值，默认这个行为是会阻塞当前线程的。为了避免阻塞，我们需要通过`AVAsynchronousKeyValueLoading`协议去异步加载:
+我们通过 URL 初始化一个`AVAsset`对象后，其大部分属性值并没有准备好，若访问了一个未准备好的属性（比如时长）会触发`AVAsset`去更新这些值，默认这个行为是会阻塞当前线程的。为了避免阻塞，我们需要通过`AVAsynchronousKeyValueLoading`协议去异步加载:
 
 ```c
 NSURL *url = <#A URL that identifies an audiovisual asset such as a movie file#>;
 AVURLAsset *anAsset = [[AVURLAsset alloc] initWithURL:url options:nil];
 NSArray *keys = @[@"duration"];
- 
+
 [asset loadValuesAsynchronouslyForKeys:keys completionHandler:^() {
     NSError *error = nil;
     AVKeyValueStatus tracksStatus = [asset statusOfValueForKey:@"duration" error:&error];
@@ -46,20 +46,19 @@ NSArray *keys = @[@"duration"];
 ```
 
 `AVComposition`代表了一个媒体作品，它是由其他媒体资源组合而成。是不可变对象。在进行视频编辑时，我们使用它的可变子类`AVMutableComposition`。比如，资源级别的操作：
-![-w445](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973768250016.jpg)
+![-w445](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973768250016.jpg)
 
 轨道级别的操作：
-![-w429](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973768791161.jpg)
+![-w429](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973768791161.jpg)
 在插入轨道后，会返回一个`AVMutableCompositionTrack`对象，我们可以利用它编辑该轨道：
-![-w313](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973786049136.jpg)
+![-w313](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973786049136.jpg)
 可以看到在编辑轨道时，要求的数据也是轨道类型`AVAssetTrack`。它代表了一个音轨或一个视频轨。
 
 ### 导出、播放以及生成快照
 
 有了数据，就可以进行接下来的操作了。比如导出、播放以及生成快照。依然通过类图的方式学习一下。
 
-![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973857650735.jpg)
-
+![](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973857650735.jpg)
 
 先看中间的`AVAssetExportSession`。它负责将一个`AVAsset`进行导出，在指定路径下生成媒体文件。在导出之前我们可以设置导出的质量、文件格式以及是否为网络传输进行优化等。导出过程中，可以通过`progress`获取导出进度，以及通过`-cancelExport`方法取消。
 
@@ -78,12 +77,12 @@ NSArray *keys = @[@"duration"];
 
 `AVVideoCompositionCoreAnimationTool`是对`CoreAnimation`的支持，可以将`CALayer`及其支持的动画引入到视频画面的合成当中来。使用它有两种方式，一是将`Layer`内容绘制到独立的轨道中参与画面合成；二是将视频帧绘制到`Layer`上，再使用`Layer`的内容生成视频帧。需要注意的是：这种方式只适用于导出，播放时需要使用`AVSynchronizedLayer`。
 
-`AVVideoCompositing`是一个视频混合器，它是一个协议，对视频画面的混合流程进行了规范。你可以提供自己的实现，接管多个轨道视频画面的混合。在需要进行混合时，它会收到`-startVideoCompositionRequest:`消息，并传递一个`AVAsynchronousVideoCompositionRequest`request参数，通过这个参数，读取画布大小，轨道id，每个轨道对应的视频画面，然后通过`finishXXX`完成一次混合。
+`AVVideoCompositing`是一个视频混合器，它是一个协议，对视频画面的混合流程进行了规范。你可以提供自己的实现，接管多个轨道视频画面的混合。在需要进行混合时，它会收到`-startVideoCompositionRequest:`消息，并传递一个`AVAsynchronousVideoCompositionRequest`request 参数，通过这个参数，读取画布大小，轨道 id，每个轨道对应的视频画面，然后通过`finishXXX`完成一次混合。
 
 ### 小结
 
 好了，视频编辑涉及到的类及其职责暂时到这里。总体来说，`AVFoundation`所支持的数据源单一，比较容易理解。但是在表示处理过程时，相对细致和复杂，毕竟这个过程就毕竟复杂。这里用一副图来进行一个小结：
-![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973943923861.jpg)
+![](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15973943923861.jpg)
 
 ## Cabbage
 
@@ -91,24 +90,26 @@ NSArray *keys = @[@"duration"];
 
 ### 基础协议
 
-* `TimeRangeProvider` 定义了时间范围
+- `TimeRangeProvider` 定义了时间范围
 
 #### 视频相关
-* `VideoCompositionTrackProvider` 定义了一个视频作品中视频轨的来源
-* `VideoCompositionProvider` 定义了图像数据的处理节点，它只有一个方法`applyEffect(to:at:renderSize:)`，接收源图像数据，并返回一个图像数据。但是这里的命名实在不理解😂。
-* `VideoProvider`并没有定义新的功能，只是将`TimeRangeProvider`、`VideoCompositionTrackProvider`、`VideoCompositionProvider`三者累加。
-* `TransitionableVideoProvider` 在`VideoProvider`基础上继续累加，并添加了获取视频转场信息的能力。
-* `VideoTransition` 定义了视频转场的必要信息以及转场时画面渲染规范。
-* `VideoConfigurationProtocol` 也定义了图像数据的处理节点，和`VideoCompositionProvider`不同的是，它接收的参数多一个`timeRange`参数
+
+- `VideoCompositionTrackProvider` 定义了一个视频作品中视频轨的来源
+- `VideoCompositionProvider` 定义了图像数据的处理节点，它只有一个方法`applyEffect(to:at:renderSize:)`，接收源图像数据，并返回一个图像数据。但是这里的命名实在不理解 😂。
+- `VideoProvider`并没有定义新的功能，只是将`TimeRangeProvider`、`VideoCompositionTrackProvider`、`VideoCompositionProvider`三者累加。
+- `TransitionableVideoProvider` 在`VideoProvider`基础上继续累加，并添加了获取视频转场信息的能力。
+- `VideoTransition` 定义了视频转场的必要信息以及转场时画面渲染规范。
+- `VideoConfigurationProtocol` 也定义了图像数据的处理节点，和`VideoCompositionProvider`不同的是，它接收的参数多一个`timeRange`参数
 
 #### 音频相关
-* `AudioCompositionTrackProvider`定义了一个视频作品中音频轨的来源
-* `AudioMixProvider`定义了声音数据的处理节点，这里的命名依然不理解😂。
-* `AudioProvider`并没有定义新的功能，只是将`TimeRangeProvider`、`AudioCompositionTrackProvider`、`AudioMixProvider`三者累加。
-* `TransitionableAudioProvider`在`AudioProvider`基础上继续累加，并添加了获取音频转场信息的能力。
-* `AudioTransition`定义了音频转场的必要信息以及转场时声音渲染规范。
-* `AudioProcessingNode`定义了音频处理节点
-* `AudioConfigurationProtocol`是`AudioProcessingNode`、`NSCopying`的累加，并没有添加其他功能
+
+- `AudioCompositionTrackProvider`定义了一个视频作品中音频轨的来源
+- `AudioMixProvider`定义了声音数据的处理节点，这里的命名依然不理解 😂。
+- `AudioProvider`并没有定义新的功能，只是将`TimeRangeProvider`、`AudioCompositionTrackProvider`、`AudioMixProvider`三者累加。
+- `TransitionableAudioProvider`在`AudioProvider`基础上继续累加，并添加了获取音频转场信息的能力。
+- `AudioTransition`定义了音频转场的必要信息以及转场时声音渲染规范。
+- `AudioProcessingNode`定义了音频处理节点
+- `AudioConfigurationProtocol`是`AudioProcessingNode`、`NSCopying`的累加，并没有添加其他功能
 
 ### 数据源
 
@@ -122,24 +123,24 @@ NSArray *keys = @[@"duration"];
 
 基于这个抽象基类，其具体的子类代表不同的资源类型。如：
 
-#### `ImageResource`  单帧图片类型
+#### `ImageResource` 单帧图片类型
 
 根据图片来源不同，又可以通过不同子类进行加载。如：
 
-* `PHAssetImageResource` 代表了来源于`Phots`框架中图片。
-* `AVAssetReaderImageResource` 代表了来源于`AVAssetReader`读取的图片，它支持`AVVideoComposition`配置。
-* `AVAssetReverseImageResource` 也代表了来源于`AVAssetReader`读取的图片，但是是倒放。
+- `PHAssetImageResource` 代表了来源于`Phots`框架中图片。
+- `AVAssetReaderImageResource` 代表了来源于`AVAssetReader`读取的图片，它支持`AVVideoComposition`配置。
+- `AVAssetReverseImageResource` 也代表了来源于`AVAssetReader`读取的图片，但是是倒放。
 
 #### `AVAssetTrackResource` 多帧图片类型
 
 这是`AVFoundation`中默认支持的类型。在此之上，根据图片来源不同，又通过不同子类进行加载。如：
 
-* `PHAssetTrackResource` 代表了`PHImageManager`中`requestAVAsset`的方式。
-* `PHAssetLivePhotoResource`代表了`PHImageManager`中`requestLivePhoto`的方式。
+- `PHAssetTrackResource` 代表了`PHImageManager`中`requestAVAsset`的方式。
+- `PHAssetLivePhotoResource`代表了`PHImageManager`中`requestLivePhoto`的方式。
 
 总体来说，`Cabbage`中组织数据源的方式就是这样，用一张类图来小结下：
 
-![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15979862760656.jpg)
+![](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/15979862760656.jpg)
 
 ### 中间状态存储
 
@@ -162,8 +163,7 @@ NSArray *keys = @[@"duration"];
 ### 小结
 
 可以看到，`Cabbage`从开始的数据源表示，到最后的合成处理设计的相对复杂。当然带来的好处也是显而易见的，就是容易扩展。下面附上相关类的总览图：
-![cabbage-structure](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/cabbagestructure.png)
-
+![cabbage-structure](https://images-for-blog.oss-cn-beijing.aliyuncs.com/2020/08/21/cabbagestructure.png)
 
 ## 总结
 
