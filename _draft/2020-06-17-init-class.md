@@ -8,13 +8,11 @@ tags:
   - Runtime
 ---
 
-
-
-## 起源 _objc_init
+## 起源 \_objc_init
 
 > 严格来说`_objc_init`并不是最开始的起点，`_dyld_start`才是。这里暂不讨论`dyld`的加载。
 
-一切要从`_objc_init`方法说起。`_objc_init`是Objc的初始化入口，由系统调用。这里除了必要的初始化外，向`dyld`注册了相关的回调，类（对象）的处理就是这些回调中进行的。
+一切要从`_objc_init`方法说起。`_objc_init`是 Objc 的初始化入口，由系统调用。这里除了必要的初始化外，向`dyld`注册了相关的回调，类（对象）的处理就是这些回调中进行的。
 
 ```c++
 //
@@ -32,7 +30,7 @@ void _dyld_objc_notify_register(_dyld_objc_notify_mapped    mapped,
                                 _dyld_objc_notify_unmapped  unmapped);
 ```
 
-这个函数接收3个函数指针，分别用于接收加载镜像、初始化镜像、卸载镜像的事件。下面是这3个流程的大致说明。
+这个函数接收 3 个函数指针，分别用于接收加载镜像、初始化镜像、卸载镜像的事件。下面是这 3 个流程的大致说明。
 ![objc-init-overview](media/objc-init-overview.png)
 
 接下来，我们就以这三条主线来研究系统是处理如何类（对象）的。
@@ -44,7 +42,7 @@ void _dyld_objc_notify_register(_dyld_objc_notify_mapped    mapped,
 1. 准备数据：统计镜像、`SEL`、`Message`，初始化全局数据结构
 2. 加载类数据：根据统计的数量加载类、分类、协议以及实现`non-lazy class`
 
-其中步骤2是核心。但在正式开始之前，我们需要先了解下几个相关内容：`future classes`、`remapped classes`、`gdb_objc_realized_classes`和`nonmeta classes`。这几个概念并没有详细的说明，但分析`map_images`又不可避免。所以下面采用顺藤摸瓜的方式探索，一起瞅瞅吧。
+其中步骤 2 是核心。但在正式开始之前，我们需要先了解下几个相关内容：`future classes`、`remapped classes`、`gdb_objc_realized_classes`和`nonmeta classes`。这几个概念并没有详细的说明，但分析`map_images`又不可避免。所以下面采用顺藤摸瓜的方式探索，一起瞅瞅吧。
 
 ### future class
 
@@ -53,9 +51,11 @@ void _dyld_objc_notify_register(_dyld_objc_notify_mapped    mapped,
 ![objc-init-class-types-futureclass](media/objc-init-class-types-futureclass.png)
 
 #### 初始化及基础支撑
+
 `futureNamedClasses()`、`haveFutureNamedClasses()`、`popFutureNamedClass()`三个函数是直接访问`future_named_class_map`的，分别负责：初始化、判断是否存在`future class`、弹出一个`future class`。
 
 #### 数据的添加
+
 `objc_getFutureClass()`调用`_objc_allocateFutureClass()`是向`future_named_class_map`中插入数据的唯一入口，但是`objc_getFutureClass`却**没有被调用**。`_objc_allocateFutureClass()`的实现也比较简单：
 
 ```c++
@@ -96,7 +96,9 @@ static void addFutureNamedClass(const char *name, Class cls) {
     old = NXMapKeyCopyingInsert(futureNamedClasses(), name, cls);
 }
 ```
+
 #### 数据的消费
+
 `future class`的唯一消费者是：`readClass()`。该方法负责读取编译器写入的类，在读取过程中会根据类名读取`future class`（如果有的话），并添加到`remapped_class_map`或`gdb_objc_realized_classes`或`allocatedClasses`记录中。
 
 ```c++
@@ -109,7 +111,7 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized) {
         cls->superclass = nil;
         return nil;
     }
-    
+
     cls->fixupBackwardDeployingStableSwift();
 
     Class replacing = nil;
@@ -130,11 +132,11 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized) {
         free((void *)old_ro);
         // 进行重映射
         addRemappedClass(cls, newCls);
-        
+
         replacing = cls;
         cls = newCls;
     }
-    
+
     if (headerIsPreoptimized  &&  !replacing) {
         // class list built in shared cache
         // fixme strict assert doesn't work because of duplicates
@@ -151,7 +153,7 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized) {
         cls->data()->flags |= RO_FROM_BUNDLE;
         cls->ISA()->data()->flags |= RO_FROM_BUNDLE;
     }
-    
+
     return cls;
 }
 ```
@@ -160,14 +162,14 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized) {
 
 至于`readClass()`的其他两个调用者：`_objc_realizeClassFromSwift()`和`objc_readClassPair()`也没有调用者，无法看出其是如何使用的。
 
-至此，`future class`任然是个迷，只是知道系统会在某一个合适的时机生成、然后通过readClass读取其信息。
+至此，`future class`任然是个迷，只是知道系统会在某一个合适的时机生成、然后通过 readClass 读取其信息。
 
 ### remapped class
 
 该类型的`class`存储在`objc::LazyInitDenseMap<Class, Class>`类型的`remapped_class_map`静态变量中。根据说明，这里主要存储两种情况下进行重映射的类：
 
-* 现有类-已经实现的`future class`键值对
-* 现有类-nil键值对，该类属于`weak-linked`类型
+- 现有类-已经实现的`future class`键值对
+- 现有类-nil 键值对，该类属于`weak-linked`类型
 
 下面参考调用路径，继续分析：
 
@@ -178,9 +180,11 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized) {
 `remappedClasses()`函数是负责分配存储该类型`class`内存的，这是一个局部静态变量。
 
 #### 数据的添加
+
 `addRemappedClass()`负责向`remapped_class_map`中插入一个`{oldcls, newcls}`键值对。
 
 #### 数据的消费
+
 既然存在这样的重映射，那么对于给定一个`class`，可能不是最终使用的`class`，所以就需要一个方法去确定这个情况。`remapClass()`就是干这个的：
 
 ```c++
@@ -207,6 +211,7 @@ static Class remapClass(Class cls) {
 `gdb_objc_realized_classes`表存储了不在`dyld`共享缓存中的类，该类可能已经被实现或者没有。
 
 `nonmeta_class_map`表是`gdb_objc_realized_classes`表的补充，只存储了一种类型的类：在主表`gdb_objc_realized_classes`存在，但不是因为`同名`因素而存在的。
+
 > 这里不是很好理解，原注释是： It only contains metaclasses whose classes would be in the runtime-allocated named-class table, but are not because some other class with the same name is in that table.
 
 这两张表也都是`NXMapTable`类型。不同的是，前者存储`name-class`键值对，后者存储了`metaclass-class`键值对。
@@ -215,11 +220,12 @@ static Class remapClass(Class cls) {
 ![objc-init-class-types-gdb_objc_realized_classes](media/objc-init-class-types-gdb_objc_realized_classes.png)
 ![objc-init-class-types-nonmetaclass](media/objc-init-class-types-nonmetaclass-1.png)
 
-
 #### 初始化
+
 `gdb_objc_realized_classes`的初始化时在`_read_images()`函数中进行的。初始化时分配的内存为之前统计到类数量的`4/3`倍。而`nonmeta_class_map`的初始化是通过懒加载的方式进行，由其`getter`方法`nonMetaClasses()`负责。
 
 #### 数据的添加
+
 `addNamedClass()`负责向`gdb_objc_realized_classes`插入一个`name-class`键值对，或向`nonmeta_class_map`中插入`metaclass-class`键值对:
 
 ```c++
@@ -254,6 +260,7 @@ static Class getClassExceptSomeSwift(const char *name) {
     return nil;
 }
 ```
+
 这里的实现也比较简单，就是通过名称，调用`getClass_impl()`函数进行查找；若是`Swift`类名，还会多一次查找。所以`getClass_impl()`才是核心：
 
 ```c++
@@ -261,7 +268,7 @@ static Class getClass_impl(const char *name) {
     // 先从gdb_objc_realized_classes表中查找
     Class result = (Class)NXMapGet(gdb_objc_realized_classes, name);
     if (result) return result;
-    
+
     // 没找到，尝试从dyld共享缓存中查找
     // Try table from dyld shared cache.
     // Note we do this last to handle the case where we dlopen'ed a shared cache
@@ -278,9 +285,10 @@ static Class getClass_impl(const char *name) {
 1. `getClassExceptSomeSwift()`未查找到 - 记录插入主表
 2. `getClassExceptSomeSwift()`查找到, 结果和入参`replacing`不相等 - 记录插入的附表
 3. `getClassExceptSomeSwift()`查找到, 结果和入参`replacing`相等 - 记录插入主表
-在整个类初始化过程中，使用`getClassExceptSomeSwift()`函数查找类时，是查不到的，所以程序中多数的类会被插入到`gdb_objc_realized_classes`表中。
+   在整个类初始化过程中，使用`getClassExceptSomeSwift()`函数查找类时，是查不到的，所以程序中多数的类会被插入到`gdb_objc_realized_classes`表中。
 
-最后，对应`addNamedClass()`的入参`replacing`，我排查了对应的几个调用方，它只有2种可能：
+最后，对应`addNamedClass()`的入参`replacing`，我排查了对应的几个调用方，它只有 2 种可能：
+
 1. `nil` 默认值，在`_objc_realizeClassFromSwift()`和`objc_duplicateClass()`以及`objc_registerClassPair`过程中也传入的是`nil`
 2. `future class` 在`readClass()`过程中
 
@@ -305,7 +313,7 @@ static void removeNamedClass(Class cls, const char *name) {
 
 综上，我们知道了，在程序中使用的类对象大多添加到了`gdb_objc_realized_classes`，剩下一部分会添加到`nonmeta_class_map`中。
 
-### _read_images
+### \_read_images
 
 `_read_images`函数主要是读取镜像中的信息，包括`@selector`引用、类、分类、协议。依据前面讲到的内容，这里主要分析类相关的内容。
 
@@ -329,10 +337,12 @@ static void remapClassRef(Class *clsref) {
 #### Discover categories
 
 这里主要扫描镜像中的分类列表，然后根据类是否`Realized`采取不同的动作。
-* 对于`Realized`的类，将分类中的实例方法、实例属性添加到类对象上；将类方法、类属性添加到元类对象上（OC居然可以添加类属性，表示没用过）。这个过程主要的功臣是`attachCategories()`函数。
-* 对于暂未`Realized`的类，只是简单的添加到`unattachedCategories`，后续通过`methodizeClass`处理。
+
+- 对于`Realized`的类，将分类中的实例方法、实例属性添加到类对象上；将类方法、类属性添加到元类对象上（OC 居然可以添加类属性，表示没用过）。这个过程主要的功臣是`attachCategories()`函数。
+- 对于暂未`Realized`的类，只是简单的添加到`unattachedCategories`，后续通过`methodizeClass`处理。
 
 `attachCategories()`：
+
 ```c++
 /// @param cls 主类
 /// @param cats_list 分类及其header信息
@@ -380,7 +390,7 @@ static void attachCategories(Class cls, const locstamped_category_t *cats_list, 
             }
             proplists[ATTACH_BUFSIZ - ++propcount] = proplist;
         }
-        
+
         // 读取协议列表，记录在协议列表缓存中，并在达到缓存上限后进行插入
         protocol_list_t *protolist = entry.cat->protocolsForMeta(isMeta);
         if (protolist) {
@@ -402,7 +412,7 @@ static void attachCategories(Class cls, const locstamped_category_t *cats_list, 
 }
 ```
 
-需要注意的是，`attachCategories`方法是调用`attachLists`结构中的`attachLists`方法完成插入的。这个方法有个特点，在[之前的文章](https://waguan.cc/ios/2020/06/10/class-object/)中有提到，它会将之前的数据后移，将新的数据放置在前面。所以会导致最后加载的分类方法在列表最前面，存在同名方法按续查找会覆盖。
+需要注意的是，`attachCategories`方法是调用`attachLists`结构中的`attachLists`方法完成插入的。这个方法有个特点，在[之前的文章](https://blog.stormyang.cn/ios/2020/06/10/class-object/)中有提到，它会将之前的数据后移，将新的数据放置在前面。所以会导致最后加载的分类方法在列表最前面，存在同名方法按续查找会覆盖。
 
 `methodizeClass`：
 
@@ -420,20 +430,20 @@ static void methodizeClass(Class cls, Class previously)
         prepareMethodLists(cls, &list, 1, YES, isBundleClass(cls));
         rw->methods.attachLists(&list, 1);
     }
-    
+
     // 将ro中的属性列表添加到rw数据中
     property_list_t *proplist = ro->baseProperties;
     if (proplist) {
         rw->properties.attachLists(&proplist, 1);
     }
-    
+
     // 将ro中的协议列表添加到rw数据中
     protocol_list_t *protolist = ro->baseProtocols;
     if (protolist) {
         rw->protocols.attachLists(&protolist, 1);
     }
 
-    // Root classes get bonus method implementations if they don't have 
+    // Root classes get bonus method implementations if they don't have
     // them already. These apply before category replacements.
     if (cls->isRootMetaclass()) {
         // root metaclass
@@ -462,14 +472,14 @@ static void methodizeClass(Class cls, Class previously)
 
 `non-lazy`类型的类是指实现了`load`方法或者存在对应的静态变量。该阶段会扫描`non-lazy`类并将其实现，然后记录到`allocatedClasses`表中。这里的实现主要做了几件事情：
 
-* 分配`RW`内存
-* 分配`class`索引
-* 实现当前类的父类及元类
-* 确定是否使用原始`isa`指针
-* 初始化`isa`
-* 修复`ivar`偏移量
-* 关联类与父类关系
-* 关联分类
+- 分配`RW`内存
+- 分配`class`索引
+- 实现当前类的父类及元类
+- 确定是否使用原始`isa`指针
+- 初始化`isa`
+- 修复`ivar`偏移量
+- 关联类与父类关系
+- 关联分类
 
 具体参考下面的代码：
 
@@ -512,7 +522,7 @@ static Class realizeClassWithoutSwift(Class cls, Class previously)
     // Choose an index for this class.
     // Sets cls->instancesRequireRawIsa if indexes no more indexes are available
     cls->chooseClassArrayIndex();
-    
+
     // Realize superclass and metaclass, if they aren't already.
     // This needs to be done after RW_REALIZED is set above, for root classes.
     // This needs to be done after class index is chosen, for root metaclasses.
@@ -580,7 +590,7 @@ static Class realizeClassWithoutSwift(Class cls, Class previously)
             cls->setHasCxxCtor();
         }
     }
-    
+
     // Propagate the associated objects forbidden flag from ro or from
     // the superclass.
     if ((ro->flags & RO_FORBIDS_ASSOCIATED_OBJECTS) ||
@@ -601,20 +611,19 @@ static Class realizeClassWithoutSwift(Class cls, Class previously)
 }
 ```
 
-
 ## load_images
 
-该阶段主要处理类的load方法。思路比较清晰，先准备，然后调用。
+该阶段主要处理类的 load 方法。思路比较清晰，先准备，然后调用。
 
 ### prepare_load_methods
 
-准备load方法时，先处理类，再处理分类。在处理类的时候，会优先考虑类的父类。具体见代码：
+准备 load 方法时，先处理类，再处理分类。在处理类的时候，会优先考虑类的父类。具体见代码：
 
 ```c++
 void prepare_load_methods(const headerType *mhdr) {
     size_t count, i;
     // 加载所有的类
-    classref_t const *classlist = 
+    classref_t const *classlist =
         _getObjc2NonlazyClassList(mhdr, &count);
     for (i = 0; i < count; i++) {
         // 处理每一个类
@@ -650,7 +659,7 @@ static void schedule_class_load(Class cls) {
     schedule_class_load(cls->superclass);
 
     add_class_to_loadable_list(cls);
-    cls->setInfo(RW_LOADED); 
+    cls->setInfo(RW_LOADED);
 }
 
 void add_class_to_loadable_list(Class cls) {
@@ -659,7 +668,7 @@ void add_class_to_loadable_list(Class cls) {
     // 获取load方法的地址，若没有，直接返回
     method = cls->getLoadMethod();
     if (!method) return;  // Don't bother if cls has no +load method
-    
+
     // 对容器扩容
     if (loadable_classes_used == loadable_classes_allocated) {
         loadable_classes_allocated = loadable_classes_allocated*2 + 16;
@@ -700,7 +709,7 @@ void add_category_to_loadable_list(Category cat)
 
 ### call_load_methods
 
-经过上一步的prepare，会得到`loadable_classes`和`loadable_categories`两个数组，分别存储类和分类的load方法信息。下面就是顺次遍历调用了：
+经过上一步的 prepare，会得到`loadable_classes`和`loadable_categories`两个数组，分别存储类和分类的 load 方法信息。下面就是顺次遍历调用了：
 
 ```c++
 void call_load_methods(void) {
@@ -736,17 +745,17 @@ static void call_class_loads(void) {
     loadable_classes = nil;
     loadable_classes_allocated = 0;
     loadable_classes_used = 0;
-    
+
     // Call all +loads for the detached list.
     for (i = 0; i < used; i++) {
         Class cls = classes[i].cls;
         load_method_t load_method = (load_method_t)classes[i].method;
-        if (!cls) continue; 
+        if (!cls) continue;
 
         // 根据函数地址，直接调用
         (*load_method)(cls, @selector(load));
     }
-    
+
     // Destroy the detached list.
     if (classes) free(classes);
 }
@@ -754,7 +763,7 @@ static void call_class_loads(void) {
 static bool call_category_loads(void) {
     int i, shift;
     bool new_categories_added = NO;
-    
+
     // 记录需要调用的loadable_categories，并将其置空
     struct loadable_category *cats = loadable_categories;
     int used = loadable_categories_used;
@@ -823,23 +832,24 @@ static bool call_category_loads(void) {
 }
 ```
 
-需要注意的是，在准备和调用时均是直接操作函数地址，并没有走OC的消息机制。
+需要注意的是，在准备和调用时均是直接操作函数地址，并没有走 OC 的消息机制。
 
 ## unmap_image
 
 这里负责卸载不在使用的镜像。是主要包含：
 
-* 卸载镜像
-* 移除Header信息
+- 卸载镜像
+- 移除 Header 信息
 
 其中卸载镜像时，会先移除分类，再移除类及其元类并释放相关内存。具体细节参考`unmap_image_nolock`和`_unload_image`
 
 `unmap_image_nolock`：
+
 ```c++
 void unmap_image_nolock(const struct mach_header *mh) {
 
     header_info *hi;
-    
+
     // Find the runtime's header_info struct for the image
     for (hi = FirstHeader; hi != NULL; hi = hi->getNext()) {
         if (hi->mhdr() == (const headerType *)mh) {
@@ -848,7 +858,7 @@ void unmap_image_nolock(const struct mach_header *mh) {
     }
 
     if (!hi) return;
-    
+
     // 卸载镜像
     _unload_image(hi);
     // 移除header
@@ -858,6 +868,7 @@ void unmap_image_nolock(const struct mach_header *mh) {
 ```
 
 `_unload_image`：
+
 ```c++
 void _unload_image(header_info *hi)
 {
@@ -918,12 +929,12 @@ void _unload_image(header_info *hi)
 
 ## 总结
 
-好了，到这里可以暂时舒缓下了，一起梳理下该篇讲的内容。我们以镜像的使用周期为主线，分别探索了镜像的读取（包含类、分类以及类的实现等），镜像的加载（load方法的扫描及调用），以及镜像的卸载。
+好了，到这里可以暂时舒缓下了，一起梳理下该篇讲的内容。我们以镜像的使用周期为主线，分别探索了镜像的读取（包含类、分类以及类的实现等），镜像的加载（load 方法的扫描及调用），以及镜像的卸载。
 
 这里还遗留了部分问题没有解决，比如：
 
-* `methodizeClass`主要处理了`ro`中的方法以及分类中的信息，其中涉及到的方法排序具体是怎么样的？
-* `non-lazy class`是在`_read_images`中进行了实现，那其他的类是在什么时候实现的？
-* ...
+- `methodizeClass`主要处理了`ro`中的方法以及分类中的信息，其中涉及到的方法排序具体是怎么样的？
+- `non-lazy class`是在`_read_images`中进行了实现，那其他的类是在什么时候实现的？
+- ...
 
 希望大家带着自己的疑问，继续前行。共勉！

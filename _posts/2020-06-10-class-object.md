@@ -573,7 +573,7 @@ struct ivar_t {
 
 ## 总结
 
-`Runtime`的学习就是理解其中的数据结构，以及如何使用这些数据结构。该篇和之前的[理解 Objective-C 中的对象](https://waguan.cc/ios/2020/04/29/object/)介绍了实例对象和类对象对应的结构，是后续学习的基础。共勉！
+`Runtime`的学习就是理解其中的数据结构，以及如何使用这些数据结构。该篇和之前的[理解 Objective-C 中的对象](https://blog.stormyang.cn/ios/2020/04/29/object/)介绍了实例对象和类对象对应的结构，是后续学习的基础。共勉！
 
 ## 参考
 

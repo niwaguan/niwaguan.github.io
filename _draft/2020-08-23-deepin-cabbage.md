@@ -1,4 +1,4 @@
-在[上篇--理解Cabbage框架的基础设计](https://waguan.cc/ios/2020/08/21/cabbage-arch/)一问中我们梳理了`Cabbage`的基本类结构。本篇主要分析相关细节实现。
+在[上篇--理解 Cabbage 框架的基础设计](https://blog.stormyang.cn/ios/2020/08/21/cabbage-arch/)一问中我们梳理了`Cabbage`的基本类结构。本篇主要分析相关细节实现。
 
 ## 体验繁琐
 
@@ -15,7 +15,7 @@ func makeComposition(from assets: [AVAsset]) -> AVComposition {
     // 添加音轨
     let audioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)!
     // 还可以添加其他类型轨道，如字幕等...
-    
+
     var cursor: CMTime = .zero
     for asset in assets {
         let duration = asset.duration
@@ -27,7 +27,7 @@ func makeComposition(from assets: [AVAsset]) -> AVComposition {
         try! audioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: audio, at: cursor)
         cursor = CMTimeAdd(cursor, duration)
     }
-    
+
     return composition
 }
 ```
@@ -48,10 +48,10 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
     // 音频轨控制参数
     let audioTrackInputParamters = AVMutableAudioMixInputParameters(track: audioTrack)
     // 还可以添加其他类型轨道，如字幕等...
-    
+
     // 视频渲染大小
     let renderSize = CGSize(width: 1920, height: 1080)
-    
+
     var cursor: CMTime = .zero
     for asset in assets {
         let range = CMTimeRange(start: cursor, duration: asset.duration)
@@ -79,7 +79,7 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
             .translatedBy(x: (renderSize.width - size.width) / 2 , y: (renderSize.height - size.height) / 2)
             .scaledBy(x: size.width/backup.width, y: size.height/backup.height)
         videoTrackLayerInstruction.setTransform(transform, at: cursor)
-        
+
         // 查找资源中的「音频轨」 添加到作品音频轨中
         let audio = asset.tracks(withMediaType: .audio).first!
         try! audioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: range.duration), of: audio, at: cursor)
@@ -88,10 +88,10 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
         audioTrackInputParamters.setVolumeRamp(fromStartVolume: 0, toEndVolume: 1.0, timeRange: CMTimeRange(start: cursor, duration: ramp))
         // 渐出
         audioTrackInputParamters.setVolumeRamp(fromStartVolume: 1.0, toEndVolume: 0, timeRange: CMTimeRange(start: CMTimeSubtract(CMTimeAdd(cursor, range.duration), ramp), duration: ramp))
-        
+
         cursor = CMTimeAdd(cursor, range.duration)
     }
-    
+
     // 视频合成控制
     let videoComposition = AVMutableVideoComposition()
     // 指定画布大小，必须
@@ -105,16 +105,16 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
     instruction.backgroundColor = UIColor.red.cgColor
     instruction.layerInstructions = [ videoTrackLayerInstruction ]
     videoComposition.instructions = [ instruction ]
-    
+
     // 音频合成控制
     let audioMix = AVMutableAudioMix()
     audioMix.inputParameters = [ audioTrackInputParamters ]
-    
+
     // 生成playerItem
     let item = AVPlayerItem(asset: composition)
     item.videoComposition = videoComposition
     item.audioMix = audioMix
-    
+
     return item
 }
 ```
@@ -151,17 +151,18 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
 
 ### 从表象开始
 
-参考上面的代码，作为`Cabbage`的使用方来说，我们需要完成3个步骤：
+参考上面的代码，作为`Cabbage`的使用方来说，我们需要完成 3 个步骤：
 
 1. 准备资源
 2. 使用资源构造`Timeline`
 3. 把`Timeline`塞到`CompositionGenerator`中进行加工
 
-可以这样理解，前两步是数据的记录配置阶段，属于数据的产生；而最后一步通过配置获取结果，属于数据的消费。在[理解Cabbage框架的基础设计](https://waguan.cc/ios/2020/08/21/cabbage-arch/)中，我大致梳理了相关的类及其职责，那么通过深究`CompositionGenerator`的消费过程，可以使你更加明白。
+可以这样理解，前两步是数据的记录配置阶段，属于数据的产生；而最后一步通过配置获取结果，属于数据的消费。在[理解 Cabbage 框架的基础设计](https://blog.stormyang.cn/ios/2020/08/21/cabbage-arch/)中，我大致梳理了相关的类及其职责，那么通过深究`CompositionGenerator`的消费过程，可以使你更加明白。
 
 ### 深陷其中
 
 `CompositionGenerator`提供的接口主要有三个：
+
 1. `public func buildPlayerItem() -> AVPlayerItem {}` 获取用于播放的播放条目
 2. `public func buildImageGenerator() -> AVAssetImageGenerator {}` 获取用于生成快照的快照生成器
 3. `public func buildExportSession(presetName: String) -> AVAssetExportSession? {}` 获取用于导出文件的导出器
@@ -181,7 +182,7 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
 
 #### buildComposition
 
-该阶段负责读取`timeline`中的资源，将其插入到`AVMutableComposition`合适的轨道中。这里主要分为4个步骤：
+该阶段负责读取`timeline`中的资源，将其插入到`AVMutableComposition`合适的轨道中。这里主要分为 4 个步骤：
 
 1. 处理视频资源
 2. 处理音频资源
@@ -192,7 +193,7 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
 
 ##### 视频音频资源的轨道安排
 
-视频资源和音频资源的轨道都使用了`A/B`轨模式（在两条轨道交叉放入各个资源的内容）。比如3个资源的轨道分布如下：
+视频资源和音频资源的轨道都使用了`A/B`轨模式（在两条轨道交叉放入各个资源的内容）。比如 3 个资源的轨道分布如下：
 
 ![-w693](media/15986885818945.jpg)
 
@@ -254,7 +255,7 @@ timeline.overlays.forEach { (provider) in
             let info = TrackInfo.init(track: compositionTrack, info: provider)
             overlayTrackInfo.append(info)
         }
-        
+
         if !overlaysTrackIDs.contains(trackID) {
             overlaysTrackIDs.append(trackID);
         }
@@ -268,12 +269,12 @@ timeline.overlays.forEach { (provider) in
 
 #### buildVideoComposition
 
-该阶段，主要生成`AVVideoComposition`对象，对视频进行控制。分为2个主要步骤：
+该阶段，主要生成`AVVideoComposition`对象，对视频进行控制。分为 2 个主要步骤：
 
 1. 按时间段生成`instructions`控制指令
 2. 使用自定义的视频混合器
 
-##### instructions控制指令
+##### instructions 控制指令
 
 在`buildComposition`阶段，处理视频资源时，会记录`轨道`和`资源集`的映射，记录在`mainVideoTrackInfo`和`overlayTrackInfo`数组中。这里会遍历两个数组，生成`VideoCompositionLayerInstruction`数组。
 
@@ -291,7 +292,6 @@ timeline.overlays.forEach { (provider) in
 ![相关类图](media/15987760400948.jpg)
 ![调用流程图](media/15987794890493.jpg)
 
-
 开始阶段。`renderContextChanged(_:)`将被调用，携带渲染上下参数，`VideoCompositor`只是记录，并没有多于操作。
 
 接收混合请求。这个阶段是真正的混合阶段，牵扯到的方法较多，并且比较名称比较相似，具体可参考调用流程图的标注。重点是`VideoCompositionInstruction`中的`apply(request:)`方法：
@@ -305,7 +305,7 @@ open func apply(request: AVAsynchronousVideoCompositionRequest) -> CIImage? {
     // 区分主轴和其他轴的指令
     var otherLayerInstructions: [VideoCompositionLayerInstruction] = []
     var mainLayerInstructions: [VideoCompositionLayerInstruction] = []
-    
+
     for layerInstruction in layerInstructions {
         if mainTrackIDs.contains(layerInstruction.trackID) {
             mainLayerInstructions.append(layerInstruction)
@@ -313,7 +313,7 @@ open func apply(request: AVAsynchronousVideoCompositionRequest) -> CIImage? {
             otherLayerInstructions.append(layerInstruction)
         }
     }
-    
+
     var image: CIImage?
     // 两个轨道时支持转场
     if mainLayerInstructions.count == 2 {
@@ -377,7 +377,7 @@ open func apply(request: AVAsynchronousVideoCompositionRequest) -> CIImage? {
     if let passingThroughVideoCompositionProvider = passingThroughVideoCompositionProvider, image != nil {
         image = passingThroughVideoCompositionProvider.applyEffect(to: image!, at: time, renderSize: renderSize)
     }
-    
+
     return image
 }
 ```
