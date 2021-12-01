@@ -324,8 +324,8 @@ post_wordcount:
 # Declare license on posts
 post_copyright:
   enable: true
-  license: CC BY-NC-SA 3.0
-  license_url: https://creativecommons.org/licenses/by-nc-sa/3.0/
+  license: CC BY-NC 4.0
+  license_url: https://creativecommons.org/licenses/by-nc/4.0/
 
 # ---------------------------------------------------------------
 # Misc Theme Settings
