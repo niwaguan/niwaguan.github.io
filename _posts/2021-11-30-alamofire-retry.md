@@ -6,6 +6,7 @@ category:
 tags:
   - Swift
   - Alamofire
+  - RetryPolicy
 ---
 
 `RetryPolicy`是`Alamofire`中对`RequestInterceptor`的又一满分实现。从名字就可以看出，它主要是满足请求出错后的各种重试策略。下面就一起来领略一番。

@@ -6,6 +6,7 @@ category:
 tags:
   - Swift
   - Alamofire
+  - RequestInterceptor
 ---
 
 [上篇]({{ site.url }}/2021/11/15/alamofire-workflow/)，我们梳理了`Alamofire`的工作流程。今天我们继续研究，这次主要梳理`RequestInterceptor`(拦截器)的相关内容。

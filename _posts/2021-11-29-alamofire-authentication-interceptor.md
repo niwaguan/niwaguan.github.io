@@ -4,7 +4,9 @@ title: Alamofire - 使用拦截器优雅的对接口进行授权
 category:
   - iOS
 tags:
-  - Swift, Alamofire
+  - Swift
+  - Alamofire
+  - AuthenticationInterceptor
 ---
 
 我们在之前分析拦截器的[文章]({{ site.url }}/2021/11/26/alamofire-request-interceptor/)中提到，`Alamofire`中实现了一些比较常用的拦截器。`AuthenticationInterceptor`绝对是满分（我打的分 🤣）实现之一。今天一起来拜读一下。
