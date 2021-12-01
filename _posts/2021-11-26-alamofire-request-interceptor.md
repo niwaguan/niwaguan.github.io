@@ -8,7 +8,7 @@ tags:
   - Alamofire
 ---
 
-[上篇](https://blog.stormyang.cn/ios/2021/11/15/alamofire-workflow/)，我们梳理了`Alamofire`的工作流程。今天我们继续研究，这次主要梳理`RequestInterceptor`(拦截器)的相关内容。
+[上篇]({{ site.url }}/2021/11/15/alamofire-workflow/)，我们梳理了`Alamofire`的工作流程。今天我们继续研究，这次主要梳理`RequestInterceptor`(拦截器)的相关内容。
 
 `RequestInterceptor`是一个协议，它本身没有任何要求，只是遵循了和两个协议：
 

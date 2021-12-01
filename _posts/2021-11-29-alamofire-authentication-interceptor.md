@@ -7,7 +7,7 @@ tags:
   - Swift, Alamofire
 ---
 
-我们在之前分析拦截器的[文章](https://blog.stormyang.cn/ios/2021/11/26/alamofire-request-interceptor/)中提到，`Alamofire`中实现了一些比较常用的拦截器。`AuthenticationInterceptor`绝对是满分（我打的分 🤣）实现之一。今天一起来拜读一下。
+我们在之前分析拦截器的[文章]({{ site.url }}/2021/11/26/alamofire-request-interceptor/)中提到，`Alamofire`中实现了一些比较常用的拦截器。`AuthenticationInterceptor`绝对是满分（我打的分 🤣）实现之一。今天一起来拜读一下。
 
 > 和`AuthenticationInterceptor`类似的还有`RetryPolicy`，也可谓精辟。具体内容放在下篇展开，敬请期待。
 

@@ -1,4 +1,4 @@
-在[上篇--理解 Cabbage 框架的基础设计](https://blog.stormyang.cn/ios/2020/08/21/cabbage-arch/)一问中我们梳理了`Cabbage`的基本类结构。本篇主要分析相关细节实现。
+在[上篇--理解 Cabbage 框架的基础设计]({{ site.url }}/2020/08/21/cabbage-arch/)一问中我们梳理了`Cabbage`的基本类结构。本篇主要分析相关细节实现。
 
 ## 体验繁琐
 
@@ -157,7 +157,7 @@ func makePlayerItem(from assets: [AVAsset]) -> AVPlayerItem {
 2. 使用资源构造`Timeline`
 3. 把`Timeline`塞到`CompositionGenerator`中进行加工
 
-可以这样理解，前两步是数据的记录配置阶段，属于数据的产生；而最后一步通过配置获取结果，属于数据的消费。在[理解 Cabbage 框架的基础设计](https://blog.stormyang.cn/ios/2020/08/21/cabbage-arch/)中，我大致梳理了相关的类及其职责，那么通过深究`CompositionGenerator`的消费过程，可以使你更加明白。
+可以这样理解，前两步是数据的记录配置阶段，属于数据的产生；而最后一步通过配置获取结果，属于数据的消费。在[理解 Cabbage 框架的基础设计]({{ site.url }}/2020/08/21/cabbage-arch/)中，我大致梳理了相关的类及其职责，那么通过深究`CompositionGenerator`的消费过程，可以使你更加明白。
 
 ### 深陷其中
 

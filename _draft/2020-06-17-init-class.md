@@ -412,7 +412,7 @@ static void attachCategories(Class cls, const locstamped_category_t *cats_list, 
 }
 ```
 
-需要注意的是，`attachCategories`方法是调用`attachLists`结构中的`attachLists`方法完成插入的。这个方法有个特点，在[之前的文章](https://blog.stormyang.cn/ios/2020/06/10/class-object/)中有提到，它会将之前的数据后移，将新的数据放置在前面。所以会导致最后加载的分类方法在列表最前面，存在同名方法按续查找会覆盖。
+需要注意的是，`attachCategories`方法是调用`attachLists`结构中的`attachLists`方法完成插入的。这个方法有个特点，在[之前的文章]({{ site.url }}/2020/06/10/class-object/)中有提到，它会将之前的数据后移，将新的数据放置在前面。所以会导致最后加载的分类方法在列表最前面，存在同名方法按续查找会覆盖。
 
 `methodizeClass`：
 
