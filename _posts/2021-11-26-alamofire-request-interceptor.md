@@ -4,9 +4,9 @@ title: Alamofire - 理解RequestInterceptor的设计与实现
 category:
   - iOS
 tags:
-  - Swift, Alamofire
+  - Swift
+  - Alamofire
 ---
-
 
 [上篇](https://blog.stormyang.cn/ios/2021/11/15/alamofire-workflow/)，我们梳理了`Alamofire`的工作流程。今天我们继续研究，这次主要梳理`RequestInterceptor`(拦截器)的相关内容。
 
@@ -21,7 +21,6 @@ public protocol RequestInterceptor: RequestAdapter, RequestRetrier {}
 ## RequestAdapter
 
 `RequestAdapter`是一个请求适配器。对于一个请求，我们可以通过`Adapter`来决定如何操作该请求。具体定义如下：
-
 
 ```swift
 public protocol RequestAdapter {
@@ -40,7 +39,6 @@ public protocol RequestAdapter {
 
 ## RequestRetrier
 
-
 ```swift
 public protocol RequestRetrier {
     /// 在请求出错后，通过该方法决定是否需要重试。我们可以有4种处理方式（来自RetryResult枚举）
@@ -50,8 +48,7 @@ public protocol RequestRetrier {
 
 可以看到这里确实是作用在收到响应之后，只不过限制了在失败的场景。
 
-这里可能的处理方式有4种：
-
+这里可能的处理方式有 4 种：
 
 ```swift
 public enum RetryResult {
@@ -70,16 +67,16 @@ public enum RetryResult {
 
 好了，静态的部分暂时分析这么多，下面瞅瞅`RequestInterceptor`是如何运行的。
 
-## RequestInterceptor是如何工作的
+## RequestInterceptor 是如何工作的
 
 为了观察`RequestInterceptor`的工作方式，我新建了一个`SignRequestInterceptor`，用来完成对请求的签名，将签名通过请求头传递：
 
-> RequestInterceptor的单元测试有点复杂，对于理解RequestInterceptor是个负担，所有这里使用我们自己写的例子。
+> RequestInterceptor 的单元测试有点复杂，对于理解 RequestInterceptor 是个负担，所有这里使用我们自己写的例子。
 
 ```swift
 class SignRequestInterceptor: RequestInterceptor {
     // MARK: - RequestAdapter
-    
+
     func adapt(_ urlRequest: URLRequest, using state: RequestAdapterState, completion: @escaping (Result<URLRequest, Error>) -> Void) {
         let request = sign(request: urlRequest)
         completion(.success(request))
@@ -89,12 +86,12 @@ class SignRequestInterceptor: RequestInterceptor {
         completion(.success(request))
     }
     // MARK: - RequestRetrier
-    
+
     func retry(_ request: Request, for session: Session, dueTo error: Error, completion: @escaping (RetryResult) -> Void) {
         completion(.retry)
     }
     // MARK: -
-    
+
     /// 模拟签名请求，使用url作为签名内容，便于观察
     private func sign(request: URLRequest) -> URLRequest {
         guard let urlString = request.url?.absoluteString else {
@@ -117,14 +114,12 @@ class SignRequestInterceptor: RequestInterceptor {
 
 我们在这里打上断点：
 
-
 ```swift
 func sign(request: URLRequest) -> URLRequest { ... }
 ```
 
 发起请求后可以看到如下调用栈：
 ![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/11/26/16379039181047.jpg)
-
 
 这里是我们上篇讲到的最后的请求配置阶段，在该阶段，我们的`Interceptor`得以调用。如何处置就看大家的想象了。
 
@@ -135,16 +130,15 @@ func sign(request: URLRequest) -> URLRequest { ... }
 ```swift
 func retry(_ request: Request, for session: Session, dueTo error: Error, completion: @escaping (RetryResult) -> Void) { ... }
 ```
+
 然后将网络断掉，模拟网络错误的情况。对应的调用栈如下：
 
 ![](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/11/26/16379039435572.jpg)
-
 
 可追溯到的调用起点是系统的回调方法：
 `SessionDelegate.urlSession(_:task:didCompleteWithError:)`。在分析具体实现之前，我们先了解下这里引入的几个新面孔：
 
 1. `SessionDelegate`：实现了众多`URLSessionDelegate`，衔接系统框架和`Alamofire`。它包含了几个重要的属性：
-
 
 ```swift
 open class SessionDelegate: NSObject {
@@ -158,7 +152,6 @@ open class SessionDelegate: NSObject {
 ```
 
 2. `SessionStateProvider`：为了不直接使用`Session`对象，这里使用`SessionStateProvider`将`Session`和`SessionDelegate`隔离开。
-
 
 ```swift
 protocol SessionStateProvider: AnyObject {
@@ -182,7 +175,6 @@ protocol SessionStateProvider: AnyObject {
 ```
 
 下面是`Session`对于该协议的实现：
-
 
 ```swift
 extension Session: SessionStateProvider {
@@ -228,11 +220,11 @@ extension Session: SessionStateProvider {
 
 3. `EventMonitor`: 事件监听器。这也是一个协议，遵循该协议的可以成为事件监听器，可监听到`URLSession`一系列代理事件和`Request`生命周期内的各种事件。监听器的所有事件都有默认的实现，在对应的扩展中。同时，`Alamofire`也提供了多个实现：
 
-    * `CompositeEventMonitor`监听器的混合器，可以将多个监听器通过该类合并在一起。
-    * `ClosureEventMonitor`闭包监听器，将`EventMonitor`的各个方法通过闭包回调。
-    * `NSLoggingEventMonitor`日志监听器，负责输出日志到控制台。
-    * `AlamofireNotifications`通知监听器，负责将对应事件以通知的形式发出，这里只实现了部分监听方法。
-   
+   - `CompositeEventMonitor`监听器的混合器，可以将多个监听器通过该类合并在一起。
+   - `ClosureEventMonitor`闭包监听器，将`EventMonitor`的各个方法通过闭包回调。
+   - `NSLoggingEventMonitor`日志监听器，负责输出日志到控制台。
+   - `AlamofireNotifications`通知监听器，负责将对应事件以通知的形式发出，这里只实现了部分监听方法。
+
 4. `RequestDelegate`: 和`SessionStateProvider`类似，`Request`通过该协议和`Session`通信
 
 ```swift
@@ -252,7 +244,6 @@ public protocol RequestDelegate: AnyObject {
 
 下面是`Session`对于该协议的实现：
 
-
 ```swift
 extension Session: RequestDelegate {
     /// 直接返回session（URLSession）的配置
@@ -265,7 +256,7 @@ extension Session: RequestDelegate {
     public func cleanup(after request: Request) {
         activeRequests.remove(request)
     }
-    
+
     /// 决定如何处理已经出错的请求
     /// 1. 未能获取到请求重试器：直接回调不再重试
     /// 2. 获取到请求重试器：根据请求重试器的结果处理：
@@ -311,14 +302,14 @@ extension Session: RequestDelegate {
 接下来的工作就简单了。`RequestRetrier`流程其实就是以上个各种方法的使用：
 
 1. `SessionDelegate.urlSession(_:task:didCompleteWithError:)`接收到系统回调。
-2. `sessionDelegate`通过`stateProvider`回调`Session.didCompleteTask(_:completion:)`告知`Session`任务完成了。此时`Session`会根据具体状态决定是否从`requestTaskMap`记录中删除task。
+2. `sessionDelegate`通过`stateProvider`回调`Session.didCompleteTask(_:completion:)`告知`Session`任务完成了。此时`Session`会根据具体状态决定是否从`requestTaskMap`记录中删除 task。
 3. `sessionDelegate`回调`Request.didCompleteTask(_:with:)`。此时`Request`会对响应进行验证，之后进入下一步的重试判断阶段。
 4. `Request.retryOrFinish(error:)`若没有错误产生，直接进入完成阶段。否则进入下一步的重试。
 5. `Request`会调用`delegate(Session).retryResult(for:dueTo:completion:)`获得是否有重试的结果，若需要重试，会调用`delegate(Session).retryRequest(_:withDelay:)`进行重试。我们实现的`SignRequestInterceptor`也正是在`Session.retryResult(for:dueTo:completion:)`方法中获得被调用的机会。
 
 大致流程就是这些，大家可以先对各个参与者有个大致印象，然后跟着流程细看。总体还是比较清晰的。
 
-### Alamofire提供的RequestInterceptor(s)
+### Alamofire 提供的 RequestInterceptor(s)
 
 框架内部也实现了一些常用的拦截器，如下：
 
@@ -329,7 +320,6 @@ extension Session: RequestDelegate {
 5. `open class RetryPolicy: RequestInterceptor { ... }`：提供更丰富的重试条件控制，如允许重试的次数，允许重试的请求方法，每次重试过后下次重试的间隔等等等。
 
 `AuthenticationInterceptor`和`RetryPolicy`简直不要太强！💯，下面会有专门的文章来分析它们，关注期待吧。🤣
-
 
 ## 总结
 

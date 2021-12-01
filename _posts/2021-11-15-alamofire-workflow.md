@@ -4,19 +4,18 @@ title: Alamofire - 抽丝剥茧认识合作伙伴
 category:
   - iOS
 tags:
-  - Swift, Alamofire
+  - Swift
+  - Alamofire
 ---
-
 
 如今`Alamofire`可以说是`Swift`工程必备框架了。
 本篇开始研究学习相关知识（`Alamofire 5.4.4`版本）。先看下工程总览：
 
 ![overview](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/11/15/overview.png)
 
-
 从框架的代码结构来看，这里的内容应该不少。我们将目标分解，先研究其工作流程，认识下相关类，为后面的深入做准备。
 
-## 巧用Test case
+## 巧用 Test case
 
 建议打开工程后，先翻一遍`Tests`文件夹，然后跑一遍所有的`Tests`，会有惊喜。别问我怎么知道的，都是泪啊。
 
@@ -31,7 +30,6 @@ tags:
 
 ![tests](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/11/15/tests.png)
 
-
 在这里会有各种各样的使用案例，敬请翱翔吧！
 
 ## 工作流程
@@ -40,8 +38,7 @@ tags:
 
 ![demo](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/11/15/demo.png)
 
-
-可以看到，在除去Test相关代码，核心就只有一句了：
+可以看到，在除去 Test 相关代码，核心就只有一句了：
 
 ```swift
 AF.request(url, parameters: ["foo": "bar"]).response { resp in
@@ -56,7 +53,7 @@ AF.request(url, parameters: ["foo": "bar"]).response { resp in
 
 同时引出了我们需要了解的几个类：
 
-### AF - Session类的全局实例对象
+### AF - Session 类的全局实例对象
 
 `Session`是`URLSession`的封装。主要负责创建并管理`Request`。同时它也负责请求队列/拦截/认证/重定向以及缓冲的管理。
 
@@ -96,13 +93,14 @@ public typealias AFDataResponse<Success> = DataResponse<Success, AFError>
 其中`DataRequest`最为常用，其次就是上传下载了。`DataStreamRequest`表示还没接触过。。。
 
 这几种`Request`都有对应的创建方法。（方法签名太长，就不贴了。）他们大多都有相同参数：
-1. convertible - 请求对应的URL
+
+1. convertible - 请求对应的 URL
 2. method - 请求方法
 3. parameters - 请求参数
-4. encoding（或encoder） - 负责将参数编码进请求中
+4. encoding（或 encoder） - 负责将参数编码进请求中
 5. headers - 额外的请求头信息
 6. interceptor - 拦截器，这个后面具体讲
-7. requestModifier - 请求修改器，可以进一步修改Request
+7. requestModifier - 请求修改器，可以进一步修改 Request
 
 在收集的各种参数后，会封装到`RequestConvertible`或`RequestEncodableConvertible`中，这两个结构体都遵循了`URLRequestConvertible`协议，可以生成`URLRequest`。简单看下它们的实现：
 
@@ -114,7 +112,7 @@ struct RequestConvertible: URLRequestConvertible {
     let encoding: ParameterEncoding
     let headers: HTTPHeaders?
     let requestModifier: RequestModifier?
-    
+
     func asURLRequest() throws -> URLRequest {
         /// 构建Request
         var request = try URLRequest(url: url, method: method, headers: headers)
@@ -125,7 +123,6 @@ struct RequestConvertible: URLRequestConvertible {
     }
 }
 ```
-
 
 ```swift
 struct RequestEncodableConvertible<Parameters: Encodable>: URLRequestConvertible {
@@ -141,7 +138,7 @@ struct RequestEncodableConvertible<Parameters: Encodable>: URLRequestConvertible
         var request = try URLRequest(url: url, method: method, headers: headers)
         /// 使用requestModifier对Request进一步定制
         try requestModifier?(&request)
-        
+
         /// 将参数编码
         return try parameters.map { try encoder.encode($0, into: request) } ?? request
     }
@@ -153,7 +150,6 @@ struct RequestEncodableConvertible<Parameters: Encodable>: URLRequestConvertible
 其次是配置阶段。
 
 创建好的`Request`会通过 `func perform(_ request: Request)`方法进行分发，根据不同类型的`Request`执行不同的配置方法：
-
 
 ```swift
 func perform(_ request: Request) {
@@ -179,7 +175,6 @@ func perform(_ request: Request) {
 ```
 
 各版本的配置方法最终又会落脚到这里：
-
 
 ```swift
 func performSetupOperations(for request: Request,
@@ -212,9 +207,9 @@ func performSetupOperations(for request: Request,
         rootQueue.async { self.didCreateURLRequest(initialRequest, for: request) }
         return
     }
-    
+
     /// 默认情况下会走这里的逻辑，除非配置了interceptor
-    
+
     let adapterState = RequestAdapterState(requestID: request.id, session: self)
     /// 适配Request，并进行后续处理
     adapter.adapt(initialRequest, using: adapterState) { result in
@@ -238,7 +233,6 @@ func performSetupOperations(for request: Request,
 
 下面是最后的配置：
 
-
 ```swift
 func didCreateURLRequest(_ urlRequest: URLRequest, for request: Request) {
     dispatchPrecondition(condition: .onQueue(rootQueue))
@@ -257,8 +251,7 @@ func didCreateURLRequest(_ urlRequest: URLRequest, for request: Request) {
 }
 ```
 
-可以看到这里主要创建task。最后是对task的配置。（这次真的是最后一次配置了😂）：
-
+可以看到这里主要创建 task。最后是对 task 的配置。（这次真的是最后一次配置了 😂）：
 
 ```swift
 func updateStatesForTask(_ task: URLSessionTask, request: Request) {
@@ -287,12 +280,11 @@ func updateStatesForTask(_ task: URLSessionTask, request: Request) {
 
 这里主要是同步`Request`的状态到`task`。
 
-终于到这里创建一个Request的流程走完了！🤣
+终于到这里创建一个 Request 的流程走完了！🤣
 
 下一步是`resume`这个请求。`request.response { resp in xxx }`
 
 这里的`response`方法定义在`ResponseSerialization.swift`文件`DataRequest`的一个扩展中:
-
 
 ```swift
 @discardableResult
@@ -333,7 +325,6 @@ public func response(queue: DispatchQueue = .main, completionHandler: @escaping 
 
 这些不同的版本本质上是使用`appendResponseSerializer(_:)`方法添加了不同的解析器。
 
-
 ```swift
 func appendResponseSerializer(_ closure: @escaping () -> Void) {
     /// $mutableState是属性包装器的使用，这里是为了线程安全。具体的使用方法放在后面再说。
@@ -358,4 +349,4 @@ func appendResponseSerializer(_ closure: @escaping () -> Void) {
 
 ## 总结
 
-好了，今天我们大致熟悉了Alamofire的请求流程，明白的一个请求从创建到发起是如何进行的。后续我会顺着这个思路，逐步分析该流程种的细节部分。敬请期待。感谢大家的阅读！
+好了，今天我们大致熟悉了 Alamofire 的请求流程，明白的一个请求从创建到发起是如何进行的。后续我会顺着这个思路，逐步分析该流程种的细节部分。敬请期待。感谢大家的阅读！

@@ -4,8 +4,10 @@ title: 如何在Swift中轻松扩展现有类而不需要考虑冲突
 category:
   - iOS
 tags:
-  - Swift, RxSwift
+  - Swift
+  - RxSwift
 ---
+
 不知各位同学是否有感觉，类似：`RxSwift`中的`xxx.rx.xxx`以及`Kingfisher`中的`image.kf.xxx`这种`api`使用起来就很爽。那么这种类似命名空间的东西是怎么实现的呢？今天一起来扒扒。我们的目标是实现字符串的截取，可以像下面这样调用：
 
 ```swift
@@ -24,7 +26,7 @@ class StringApi {
     init(_ string: String) {
         self.string = string
     }
-    
+
     func substring(from: Int) -> String? {
         let start = string.index(string.startIndex, offsetBy: from)
         let x = string[start..<string.endIndex]
@@ -108,6 +110,7 @@ extension NamespaceCompatible {
 ```swift
 extension String: NamespaceCompatible {}
 ```
+
 再比如`CGSize`
 
 ```swift
@@ -115,6 +118,7 @@ extension CGSize: NamespaceCompatible {}
 ```
 
 最后，我们的`api`要放在何处？又该如何组织？答案还是`extension`！
+
 > 我们通过`.pns`返回的是`Wrapper`，所以这里应该扩展`Wrapper`。但是需要加上约束。
 
 ```swift
@@ -141,7 +145,9 @@ extension Wrapper where T: Sequence, T.Element == String {
     }
 }
 ```
+
 好了，这样就可以快乐的玩耍了。下次我们再扩展其他类型时，只需：
+
 1. `extension Type: NamespaceCompatible {}`
 2. `extension Wrapper where T == Type` 或者 `extension Wrapper where T: Type`
 
@@ -150,6 +156,7 @@ extension Wrapper where T: Sequence, T.Element == String {
 最后我们一起来看看第三方库的实现方式，是否和我们的思路一样：
 
 ### RxSwift
+
 ![-w902](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2021/09/27/16327143891877.jpg)
 
 整个实现都在`Reactive.swift`文件中：
@@ -170,7 +177,7 @@ extension Wrapper where T: Sequence, T.Element == String {
 
 在如何实现这里，需要一定的抽象能力。需要多看多思考多动手。
 
-还有一部分可能是因为Swift的语法问题：
+还有一部分可能是因为 Swift 的语法问题：
 
 1. `Self` & `self`的使用方法。 参考[这里](https://www.cnswift.org/types#Self)
 2. `Swift`的协议约束不熟悉。参考[这里](https://www.cnswift.org/protocols#spl-22)
