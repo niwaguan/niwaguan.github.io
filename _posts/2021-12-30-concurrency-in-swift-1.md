@@ -1,6 +1,8 @@
 ---
 layout: post
 title: 【译】Swift并发编程一
+description: 这里是`Swift并发编程系列`第一篇（共四篇）。包含以下内容：为什么需要并发编程、并发于并行的区别、GCD中的队列与函数、预防死锁、`DispatchWorkItem`
+
 category:
   - iOS
 tags:

@@ -1,6 +1,7 @@
 ---
 layout: post
 title: 【译】Swift&JSON 从入门到精通
+description: 在这个教程中，你将学习到所有使用Swift进行编解码所需要的知识。包括这些： 1. 在`蛇形命名`和`驼峰命名`格式之间转换 2. 自定义`Coding keys` 3. 使用`keyed`, `unkeyed` 和 `nested` 容器 4. 处理`嵌套类型`, `日期类型`以及子类
 category:
   - iOS
 tags:
