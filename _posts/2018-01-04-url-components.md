@@ -1,6 +1,7 @@
 ---
 layout: post
 title: 这一次,让我们再深入一点 - URL你是否真的了解?
+description: 在浩瀚的互联网中，URL 就是互联网资源的标准化名称。本节，让我们一起扒开 URL 的外衣！你可以了解到一下内容：URL 语法，以及各种 URL 组件的含义以及其所做的工作、URL 和自动扩展 URL、URL 编码和字符规则
 category:
   - Network
 tags:

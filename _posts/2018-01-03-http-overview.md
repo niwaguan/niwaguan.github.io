@@ -1,6 +1,7 @@
 ---
 layout: post
 title: 【读】这一次,让我们再深入一点 - HTTP概览
+description: 本篇旨在理解 HTTP 客户端服务器交互过程，对其模型有大体了解，不做深入了解。你可以了解到一下内容: Web 客户端于服务器是如何通信的、表示 Web 内容的资源来自何方、Web 事务是怎样工作的、HTTP 通信所使用的报文格式、底层 TCP 网络传输、HTTP 协议演变、Web 结构组件
 category:
   - Network
 tags:

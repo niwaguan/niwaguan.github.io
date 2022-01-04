@@ -1,6 +1,7 @@
 ---
 layout: post
 title: 【读】这一次,让我们再深入一点 - HTTP报文
+description: HTTP 报文是客户端和服务器交流使用的“对话方式”，彼此说对方都能理解的话，才能相互沟通。就像 TCP 使用 TCP 报文交流一样.那么 HTTP 报文的格式到底怎样，让我们一探究竟！
 category:
   - Network
 tags:
