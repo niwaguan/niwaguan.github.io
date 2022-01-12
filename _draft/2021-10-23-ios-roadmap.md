@@ -40,7 +40,7 @@
 
 ## iOS相关
 
-### --Objective-C--
+### Objective-C
 
 #### property
 
@@ -128,9 +128,107 @@
 2. 集合类型，其中的元素不会被复制。
 
 #### KVO
+
+##### 1. 如何实现KVO的监听
+
+```oc
+/// 对self添加一个观察者
+/// @param observer 观察者
+/// @param keyPath 观察的属性名
+/// @param options 配置选项
+/// @param context 上下文对象
+- (void)addObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(nullable void *)context {}
+
+/// 观察者通过该方法获取观察对象的变化
+/// @param keyPath 观察的属性名
+/// @param object 被观察的对象
+/// @param change 变化的值
+/// @param context 添加观察者时传递的上下文对象
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+}
+```
+##### 2. 如何手动触发KVO
+
+首先注册KVO，在值改变之前调用`willChangeValueForKey:`，紧接着调用赋值代码，最后调用`didChangeValueForKey:`。
+
+```oc
+- (void)viewDidLoad {
+   [super viewDidLoad];
+   _now = [NSDate date];
+   [self addObserver:self forKeyPath:@"now" options:NSKeyValueObservingOptionNew context:nil];
+   NSLog(@"1");
+   [self willChangeValueForKey:@"now"]; // “手动触发self.now的KVO”，必写。
+   NSLog(@"2");
+   [self didChangeValueForKey:@"now"]; // “手动触发self.now的KVO”，必写。
+   NSLog(@"4");
+}
+```
+
+##### 3. KVO是如何实现的
+
+在观察一个对象时，一个新的类会被动态创建。这个类继承自该对象原本的类，并重写了被观察属性的 setter 方法。重写的 setter 方法会负责在调用原 setter 方法之前和之后，通知所有观察对象：值的更改。最后通过 isa 混写（isa-swizzling） 把这个对象的 isa 指针指向这个新创建的子类。
+![KVO](media/68747470733a2f2f747661312e73696e61696d672e636e2f6c617267652f30303753385a496c6c79316766656336396767756b6a333071683066766a74612e6a7067.jpeg)
+
+
+##### 4. KVO应该注意什么
+1. 所有的观察回调都集中在一个方法中，如果观察了多个`keyPath`，需要做区分
+2. `keyPath`是字符串，无法借助编译器检查是否出错。要不就使用`NSStringFromSelector(@selector(contentSize))`
+3. 回调中需要处理父类情况。`[super observeValueForKeyPath:keyPath ofObject:object change:change context:context]; `
+4. 需要反注册，且不能多次进行。
+
+> 优雅的解决方案：https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwisoof5kJz1AhXbwosBHdieDz0QFnoECAIQAQ&url=https%3A%2F%2Fgithub.com%2Ffacebookarchive%2FKVOController&usg=AOvVaw18XQ3v8HiJDmMXnZBQ9LH3
+> 分析原理：https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwisoof5kJz1AhXbwosBHdieDz0QFnoECAUQAQ&url=https%3A%2F%2Fdraveness.me%2Fkvocontroller%2F&usg=AOvVaw11hJpbJzjN4F-JJ7qHbLof
+
 #### KVC
+
+##### 1. `-[NSObject valueForKey:]`过程
+1. 查找方法
+    1. 普通变量支持`getKey/key/isKey/_getKey/_key`
+    2. 数组类型变量支持`countOfKey`+`objectInKeyAtIndex`/`keyAtIndexes`
+    3. set类型变量支持`countOf<Key>`+`enumeratorOf<Key>`+`memberOf<Key>`
+2. `+accessInstanceVariablesDirectly`根据方法决定是否查找实例变量
+    1. 实例变量查找规则：`_<key>/_<isKey>/<key>/<isKey>`
+3. `valueForUndefinedKey:`
+
+##### 2. `-[NSObject setValue:forKey:]`过程
+1. 查找方法
+    1. `set<Key>: / _set<Key> / setIs<Key>`
+2. `+accessInstanceVariablesDirectly`根据方法决定是否查找实例变量
+    1. 实例变量查找规则：`_<key>/_<isKey>/<key>/<isKey>`
+3. `setValue:forUndefinedKey:` 
+
+##### 3. 集合类支持
+
+1. `-[NSObject mutableArrayValueForKey:]`获取可变类型数组值
+2. `-[NSObject mutableOrderedSetValueForKey:]`获取可变排序Set
+3. `-[NSObject mutableSetValueForKey:]`获取可变无序Set
+4. `-[NSObject dictionaryWithValuesForKeys:]`获取多个key对应的值
+5. `-[NSObject setValuesForKeysWithDictionary:]`设置多个key
+6. 对于`NSArray`、`NSDictionary`、`NSMutableDictionary`、`NSOrderedSet`、`NSSet`，这些类覆写了`valueForKey:`和`setValue:forKey:`，在`NSObject`中的实现会应用类这些类的每个元素上。
+
+##### 4. 异常处理
+1. `-[NSObject valueForKey:]`和`-[NSObject setValue:forKey:]`接收的都是`对象类型`。对应那些不是对象类型的`key`，kvc会自动转换为`NSNumber`或`NSValue`。但是对于`非对象类型`在设置值时，如传入`nil`，会异常。我们可以覆写`-[NSObject setNilValueForKey:]`来解决。
+2. `-[NSObject validateValue:forKey:error:]`可实现自定义的验证过程。但需要手动调用。
+
+##### 5. &KVO
+
+1. `KVC`导致的值变更，会触发`KVO`，是在`-[NSObject setValue:forKey:]`中触发。和通过属性改变值的流程不一致。![kvc触发](media/16417860631471.jpg)![-w1298](media/16417861103064.jpg)
+
+
 #### Category
+
+##### 1. Category的实现原理
+1. Category编译之后的底层结构是struct category_t，里面存储着分类的对象方法、类方法、属性、协议信息
+2. 在程序运行的时候，runtime会将Category的数据，合并到类信息中（类对象、元类对象中）
+
+##### 2. Category和Class Extension的区别是什么？
+Class Extension在编译的时候，它的数据就已经包含在类信息中
+Category是在运行时，才会将数据合并到类信息中
+
 #### Association
+![](media/16418251750508.jpg)
+
+每个对象会对应一个`ObjectAssociationMap`，记录着该对象所有的关联值信息。
 
 #### Block
 
@@ -161,7 +259,10 @@
 这里定义的`__block int age = 10`在转写后变为`__Block_byref_age_0`类型的结构体。其中`__forwarding`指针，为了统一`Block`被复制后，栈和堆中的`__block`变量的内存地址。如下图：
 ![23141480-17e033e9ffd6e345-w447](media/23141480-17e033e9ffd6e345.png)
 
+##### 5. block和代理的区别是什么？
 
+1. block 集中代码块而代理分散代码块，所以 block 更适用于轻便、简单的回调，如网络传输。而代理适用于公共接口较多，这样做也更易于解耦代码架构。
+2. block 运行成本高。block 出栈需要将使用的数据从栈内存拷贝到堆内存，当然对象的话就是加计数，使用完或者 block 置 nil 后才消除；delegate 只是保存了一个对象指针，直接回调，没有额外消耗。
 
 #### Runloop
 
@@ -395,7 +496,8 @@ dispatch_async(queue, ^{
     * https://www.jianshu.com/p/713106afd7ef
       
 ##### 0. 内存分布
- ![5724083-3765664f80676611](media/5724083-3765664f80676611.png)
+ ![](media/16417905557018.jpg)
+
 
 ##### 1. runtime 如何实现 weak 属性
 Runtime维护了`weak`哈希表，用于记录某个对象的所有weak引用，`key`是对象地址，`value`是`weak`指针地址数组。例如下面代码：
@@ -423,7 +525,7 @@ __weak id objA = obj0;
 
 ##### 3. objc使用什么机制管理对象内存？
 
-引用计数。当引用计数为0时，就说明对象可以释放了。
+引用计数。引用计数代表一个对象有多少个使用者，每增加一个使用者，该数字增加一，每减少一个使用者该数字减少一， 当引用计数为0时，就说明对象可以释放了。
 
 1. 成员变量的释放
     这个对象 dealloc 时候，成员变量 `objc_storeStrong(&ivar,nil)` 进行释放
@@ -537,9 +639,174 @@ struct objc_super {
     2. 使用`class_addIvar`添加实例变量，还可以使用`class_addMethod`添加方法等等...
     3. 使用`objc_registerClassPair`注册类；一旦注册，就不能再次改变类结构。
 
-### --Swift--
+##### 7. +load方法和+initialize
 
-### --UIKit--
+1. `+load`方法会在runtime加载类,分类时调用
+2. 每个类,分类的`+load`,在程序运行过程中只调用一次
+3. 先调用类的`+load`，按照编译先后顺序调用(先编译,先调用)，调用子类的+load之前会先调用父类的+load；再调用分类的+load，按照编译先后顺序调用(先编译,先调用)
+4. +initialize方法会在类第一次接收消息时调用；先调用父类的+initialize,再调用子类的+initialize(先初始化父类,再初始化子类,每个类只会初始化1次)
+5. +initialize和+load的很大区别是,+initialize是通过objc_msgSend进行调用的,所以有以下特点：如果子类没有实现+initialize,会调用父类的+initialize(所以父类的+initialize可能会被调用多次)如果分类实现了+initialize,就覆盖类本身的+initialize调用
+
+##### 8. 方法交换模板
+
+```oc
+#import <objc/runtime.h>
+@implementation UIViewController (Swizzling)
+/// Objective-C在运行时会自动调用类的两个方法+load和+initialize。+load会在类初始加载时调用， +initialize方法是以懒加载的方式被调用的，如果程序一直没有给某个类或它的子类发送消息，那么这个类的 +initialize方法是永远不会被调用的。所以Swizzling要是写在+initialize方法中，是有可能永远都不被执行。
++ (void)load {
+    // wizzling会改变全局状态，所以在运行时采取一些预防措施，使用dispatch_once就能够确
+    // 保代码不管有多少线程都只被执行一次。比如继承中用了Swizzling，
+    // 如果不写dispatch_once就会导致Swizzling失效！子类的load方法调用之前会调用父类的load，导致父类的load调用多次。
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class class = [self class];
+        // When swizzling a class method, use the following:
+        // Class class = object_getClass((id)self);
+        SEL originalSelector = @selector(viewWillAppear:);
+        SEL swizzledSelector = @selector(xxx_viewWillAppear:);
+        Method originalMethod = class_getInstanceMethod(class, originalSelector);
+        Method swizzledMethod = class_getInstanceMethod(class, swizzledSelector);
+        // class_addMethod先进行判断一下原有类中是否有要替换的方法的实现。
+        // 如果class_addMethod返回NO(没有添加成功)，说明当前类中有要替换方法的实现，
+        // 所以可以直接进行替换，调用method_exchangeImplementations即可实现Swizzling。
+        // 如果class_addMethod返回YES(添加方法成功)，说明当前类中没有要替换方法的实现，我们需要在父类中去寻找。
+        // 这个时候就需要用到method_getImplementation去获取class_getInstanceMethod里面的方法实现。然后再进行class_replaceMethod来实现Swizzling。
+        BOOL didAddMethod = class_addMethod(class,
+                                            originalSelector,
+                                            method_getImplementation(swizzledMethod),
+                                            method_getTypeEncoding(swizzledMethod));
+        if (didAddMethod) {
+            class_replaceMethod(class,
+                                swizzledSelector,
+                                method_getImplementation(originalMethod),
+                                method_getTypeEncoding(originalMethod));
+        } else {
+            method_exchangeImplementations(originalMethod, swizzledMethod);
+        }
+    });
+}
+#pragma mark - Method Swizzling
+- (void)xxx_viewWillAppear:(BOOL)animated {
+    [self xxx_viewWillAppear:animated];
+    NSLog(@"viewWillAppear: %@", self);
+}
+@end
+```
+
+### Swift
+#### 常规
+##### 1. 类（class）和结构体（struct）有什么区别？
+类是引用类型，结构体是值类型。值类型在传递和赋值时将进行复制，而引用类型则只会使用引用对象的一个"指向"。从内存使用的角度，引用类型诸如类是在堆（heap）上，而值类型诸如结构体是在栈（stack）上进行存储和操作。相比于栈上的操作，堆上的操作更加复杂耗时，所以苹果官方推荐使用结构体，这样可以提高 App 运行的效率。
+
+class 有这几个功能 struct 没有的：
+
+1. class 可以继承，这样子类可以使用父类的特性和方法；
+2. 类型转换可以在 runtime 的时候检查和解释一个实例的类型；
+3. 可以用 deinit 来释放资源；
+
+struct 也有这样几个优势：
+
+1. 结构较小，适用于复制操作，相比于一个 class 的实例被多次引用更加安全；
+2. 无须担心内存 memory leak 或者多线程冲突问题。
+
+##### 2. Swift 是面向对象还是函数式的编程语言？
+Swift 既是面向对象的，又是函数式的编程语言。
+
+面向对象，是因为 Swift 支持类的封装、继承、和多态这些面向对象特征。
+
+函数式，是因为 Swift 支持 map, reduce, filter, flatmap 这类去除中间状态、数学函数式的方法，更加强调运算结果而不是中间过程。
+
+##### 3. 什么是可选型（optional） ？
+可选型是为了表达当一个变量值为空的情况。当一个值为空时，它就是 nil。Swift 中无论是引用类型或是值类型的变量，都可以是可选型变量。
+
+##### 4. 在 Swift 中，什么是泛型（Generics）？
+泛型在 Swift 中主要为增加代码的灵活性而生：它可以使得对应的代码满足任意类型的变量或方法。比如交换两个类型相同变量的值，对于任意类型的值，他们的交换逻辑一致。泛型方法避免了对于不同类型需要实现不同方法的情况。
+
+##### 5. Swift中的访问控制权限
+
+Swift 有五个级别的访问控制权限，从高到底依次为比如 Open, Public, Internal, File-private, Private。
+
+他们遵循的基本原则是：高级别不允许出现在低级别的范围内。比如一个 private 的 class 中不能含有 public 的 String。反之，低级别的变量却可以定义在高级别的变量中。比如 public 的 class 中可以含有 private 的 Int。
+
+1. Open 具备最高的访问权限。其修饰的类和方法可以在任意 Module 中被访问和重写；它是 Swift 3 中新添加的访问权限。
+2. Public 的权限仅次于 Open。与 Open 唯一的区别在于它修饰的对象可以在任意 Module 中被访问，**但不能重写**。
+3. Internal 是默认的权限。它表示只能在当前定义的 Module 中访问和重写，它可以被一个 Module 中的多个文件访问，但不可以被其他的 Module 中被访问。
+4. File-private 也是 Swift 3 新添加的权限。其被修饰的对象只能在当前文件中被使用。例如它可以被一个文件中的不同 class，extension，struct 共同使用。
+5. Private 是最低的访问权限。它的对象只能在定义的作用域内及其对应的扩展内使用。离开了这个对象，即使是同一个文件中的对象，也无法访问。
+
+##### 6. 在 Swift 中，怎样理解 copy-on-write
+当值类型比如 struct 在复制时，复制的对象和原对象实际上在内存中指向同一个对象。当且仅当复制后的对象进行修改的时候，才会在内存中重新创建一个新的对象。
+
+##### 7. 什么是属性观察（Property Observer）？
+属性观察是指在当前类型内对特定属性进行监视，并作出响应的行为。它是 Swift 的特性，有两种，为 willSet 和 didSet。举个例子：
+
+```swift
+var title: String {
+  willSet {
+    print("将标题从\(title)设置到\(newValue)")
+  }
+  didSet {
+    print("已将标题从\(oldValue)设置到\(title)")
+  }
+}
+```
+这段代码对于 title 做了监听。当 title 发生改变前，willSet 对应的作用域将被执行，新的值是 newValue；当 title 发生改变之后，didSet 对应的作用域将被执行，原来的值为 oldValue。
+
+**初始化方法对属性的设定，以及在 willSet 和 didSet 中对属性的再次设定都不会触发属性观察的调用。**
+
+##### 8. 结构体中修改成员变量的方法
+
+下面代码有什么问题？
+
+```swift
+protocol Pet {
+  var name: String { get set }
+}
+
+struct MyDog: Pet {
+  var name: String
+
+  func changeName(name: String) {
+    self.name = name
+  }
+}
+```
+该在 func changeName(name: String) 前加上关键词 mutating，表示该方法将会修改结构体中自己的成员变量。
+
+设计协议的时候，由于protocol 可以被 class 和 struct 或者 enum 实现，故而要考虑是否用 mutating 来修饰方法。
+
+##### 9. 用 Swift 实现或（||）操作
+或（||）操作的本质是当左边为真的时候，我们无需计算右边。所以核心是怎样按需对右边的值进行计算。
+
+```swift
+/// 自动闭包
+func ||(left: Bool, right: @autoclosure () -> Bool) –> Bool {
+  if left {
+    return true
+  } else {
+    return right()
+  }
+}
+```
+
+#### 函数式
+
+##### 1. 柯里化
+柯里化，将接受多个参数的方法进行变形，得到单一函数的过程。如将`add(_ x: Int, _ y: Int)`函数进行柯里化：
+
+```swift
+func add(_ num: Int) -> (Int) -> Int {
+  return { val in
+    return num + val
+  }
+}
+
+let addTwo = add(2), addFour = add(4), addSix = add(6), addEight = add(8)
+addTow(3)// 在3上面加上2
+```
+
+
+### UIKit
 
 1. 响应者链
 2. UIApplication生命周期
@@ -554,10 +821,70 @@ struct objc_super {
 1. https://www.jianshu.com/p/c6b7302b7411
 
 ### NSNotification
+#### 1. 基本使用
 
-### --优化技巧--
+```oc
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    // 注册通知，无论通知名称是什么，无论是哪个对象发出的，都会接收。
+    // name和object相当于通知的过滤器。
+    // 指定name后，只接受对应name的通知。
+    // 指定object后，只接受对应object发出的通知
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveNotification:) name:nil object:nil];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveObjectNofication:) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveNamedNofication:) name:nil object:[NSObject new]];
+}
 
-### --Cocoapods--
+- (void)didReceiveNotification:(NSNotification *)noti {
+    NSLog(@"1️⃣\n%s\nname: %@\ninfo: %@\n-----------------------", __func__, noti.name, noti.userInfo);
+}
+
+- (void)didReceiveNamedNofication:(NSNotification *)noti {
+    NSLog(@"2️⃣\n%s", __func__);
+}
+
+- (void)didReceiveObjectNofication:(NSNotification *)noti {
+    NSLog(@"3️⃣\n%s", __func__);
+}
+```
+#### 2. 注意事项
+1. iOS9之前，需要手动移除通知，之后不再需要移除。
+2. `-[NSNotificationCenter postNotificationName:object:userInfo:]`会同步调用注册回调，注册回调执行完毕后，继续`post`之后的事情。所以，在哪个线程发出的通知，之前注册的回调就会在哪个线程执行。
+3. 保证接收通知在主线程，可以从发送和接收两个方面考虑。
+    1. 保证发送或接收在主线程
+    2. 使用`-[NSNotificationCenter addObserverForName:object:queue:usingBlock:]`api
+
+#### 3. 通知数据结构
+
+1. 注册的包含名字的通知：
+![](media/16415254693141.jpg)
+
+2. 没有名字，但有sender过滤的：
+![](media/16415254978905.jpg)
+
+1. 没有名字和发送对象的，直接存储在链表中
+
+### 经验技巧
+
+#### 1. 如何调试BAD_ACCESS错误
+1. `Zombie Object`
+2. 全局断点
+3. `Address Sanitizer`
+
+#### 2. 如何调试循环引用
+
+1. Xcode 中的 Debug Memory Graph内存视图
+2. Xcode 也会在 runtime 中自动汇报内存泄漏
+    
+    ![](media/16418665586856.png)
+
+
+### 优化
+
+### Cocoapods
 
 ### 常用第三方库
 
