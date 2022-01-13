@@ -1,3 +1,6 @@
+> 原文地址：https://ali-akhtar.medium.com/concurrency-in-swift-operations-and-operation-queue-part-3-a108fbe27d61
+
+![并发于并行的区别](media/0*dAwO_Y-Zkxm3ReD8.png)
 
 这里是`Swift并发编程系列`第三篇（共四篇 [一]({{ site.url }}/2021/12/30/concurrency-in-swift-1/)、[二]({{ site.url }}/2021/12/30/concurrency-in-swift-2/)）。包含以下内容：
 1. Operations的状态

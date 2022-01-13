@@ -1,5 +1,7 @@
 > 原文地址：https://ali-akhtar.medium.com/concurrency-in-swift-grand-central-dispatch-part-2-1b0b025ee381
 
+![并发于并行的区别](media/0*dAwO_Y-Zkxm3ReD8.png)
+
 这里是`Swift并发编程系列`第二篇（共四篇：[一]({{ site.url }}/2021/12/30/concurrency-in-swift-1/)）。主要包含`Dispatch Group`相关内容。
 
 `Dispatch Group`有以下特点：
