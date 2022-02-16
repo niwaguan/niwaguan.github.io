@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Alarmfire - 理解URLEncodedFormEncoder
+title: Alamofire - 理解URLEncodedFormEncoder
 category:
   - iOS
 tags:

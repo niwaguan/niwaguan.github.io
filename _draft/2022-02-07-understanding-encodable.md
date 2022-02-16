@@ -1,4 +1,4 @@
-# Alarmfire - 理解URLEncodedFormEncoder
+# Alamofire - 理解URLEncodedFormEncoder
 
 `Encodable`表示一种可以被`编码器`进行编码数据结构。比如`JSONEncoder`可以将其编码为`JSON`格式，`PropertyListEncoder`可以将其编码为`.plist`格式，而`Alamofire`中的`URLEncodedFormEncoder`可以将其编码为`application/x-www-form-urlencoded`格式。
 
