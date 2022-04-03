@@ -453,8 +453,14 @@ int CFRunLoopRunSpecific(runloop, modeName, seconds, stopAfterHandle) {
 1. `NSOperation`默认是同步的，它不会在内部再创建新的线程执行任务。
 2. `NSOperation`可以直接使用，通过`start`方法启动，也可以添加到`NSOperationQueue`中，由系统进行调度。
 3. 若你的`NSOperation`只会在`NSOperationQueue`中使用，可以直接将其设计为`同步的`；若考虑直接使用，也可以设计成`异步的`，这样它就不会阻塞其调用线程。但是需要覆写下面的方法：
-    1. start, 启动线程执行任务，并以支持KVO的方式更新`isExecuting`属性。
-
+    1. start, 启动线程执行任务，并以支持KVO的方式更新`isExecuting`属性。必须⚠️
+    2. main, 实现`Operation`的主要任务逻辑。也可以在start方法中实现。可选✅
+    3. 在任务完成后，以支持KVO的方式更新`isFinished`属性。必须⚠️
+    4. isAsynchronous，告知系统该`Operation`是以异步的方式执行。必须⚠️
+    5. 具体实现参考：https://blog.stormyang.cn/2022/01/14/concurrency-in-swift-4/
+#### GCD的Tips
+1. 避免任务阻塞。GCD的底层还是线程，一个任务阻塞会导致执行该任务的线程阻塞，GCD为了能执行其他任务，会新创建线程。若存在过多的阻塞任务，这将是灾难！
+2. 为一个类创建它自己的队列而不是使用全局的队列。这样便于调试。
 
 ##### 分析打印结果1
 
@@ -654,7 +660,7 @@ struct objc_super {
 @implementation UIViewController (Swizzling)
 /// Objective-C在运行时会自动调用类的两个方法+load和+initialize。+load会在类初始加载时调用， +initialize方法是以懒加载的方式被调用的，如果程序一直没有给某个类或它的子类发送消息，那么这个类的 +initialize方法是永远不会被调用的。所以Swizzling要是写在+initialize方法中，是有可能永远都不被执行。
 + (void)load {
-    // wizzling会改变全局状态，所以在运行时采取一些预防措施，使用dispatch_once就能够确
+    // swizzling会改变全局状态，所以在运行时采取一些预防措施，使用dispatch_once就能够确
     // 保代码不管有多少线程都只被执行一次。比如继承中用了Swizzling，
     // 如果不写dispatch_once就会导致Swizzling失效！子类的load方法调用之前会调用父类的load，导致父类的load调用多次。
     static dispatch_once_t onceToken;
