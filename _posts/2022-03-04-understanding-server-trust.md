@@ -64,7 +64,7 @@ private let secretSession = Session(serverTrustManager: ServerTrustManager(allHo
 ![-w1221](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2022/04/03/16487783651278.jpg)
 ![-w511](http://images-for-blog.oss-cn-beijing.aliyuncs.com/2022/04/03/16488634034003.jpg)
 
-准备完毕。如果感觉到麻烦，可以在这里获取完整代码。
+准备完毕。如果感觉到麻烦，可以在[这里](https://github.com/niwaguan/Alamofire/tree/risk)获取完整代码。
 
 ## 启动实验
 
