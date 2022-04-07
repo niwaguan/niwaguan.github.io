@@ -10,7 +10,6 @@
 2. [网络篇](https://juejin.cn/post/6844904202523639822#heading-16)
 3. [网络篇](https://juejin.cn/post/6844904202523639822#heading-0)
 
-推荐库`Alarmfire`
 
 #### HTTP(s)
 
@@ -19,12 +18,25 @@
 3. [图解HTTPS](https://juejin.cn/post/6844903608421449742)
 
 #### NDS
+互联网上任何资源都是需要有一台服务器来存储它，而访问该资源的第一步就是要知道它在哪，而`ip`是服务器的唯一标识，但是它不容易被记住，`NDS`正是用来解决ip无法被记住的困境，把它们使用有意义的字符串代替--域名
 
 [解析流程](https://juejin.cn/post/6844904202523639822#heading-9)
 
 #### TCP
 
 1. [总览](https://juejin.cn/post/6844903543623647246)
+2. [热门文章](https://link.juejin.cn/?target=https%3A%2F%2Fyuanrengu.com%2F2020%2F77eef79f.html)
+
+##### 三次握手
+![](media/16491268706362.jpg)
+
+1. 两次或四次握手行不行？
+    握手主要解决了客户端和服务器两方的收发能力确认，两次握手并不能让双方都确定。并且网络环境是多变的，有可能一次握手的包没有按时到达对方，触发了超时重传，接收方会多次建立连接。
+    三次已经完成任务，四次，很明显是多余的。
+
+##### 四次挥手
+![](media/16491272938573.jpg)
+
 
 #### UDP
 
@@ -50,16 +62,15 @@
 2. 基本数据类型：atomic, readwrite, assign
 3. 引用类型：atomic, readwrite, strong
 4. `@property (class) int x;` 类属性，iOS10之后支持。但不会自动合成，需要自己使用`@dynamic`实现。
-5. 参考[property修饰符详解](https://www.jianshu.com/p/da797678ef95)
 
 ##### 2. property 本质是什么？ivar、getter、setter 是如何生成并添加到这个类中的?
-    
+
 `@property = ivar + getter + setter;` 就是实例变量和存取方法。
-    
+
 完成属性定义后，编译器会自动编写访问这些属性所需的方法，此过程叫做“自动合成”(autosynthesis)。需要强调的是，这个过程由编译 器在编译期执行，所以编辑器里看不到这些“合成方法”(synthesized method)的源代码。除了生成方法代码 getter、setter 之外，编译器还要自动向类中添加适当类型的实例变量，并且在属性名前面加下划线，以此作为实例变量的名字。在前例中，会生成两个实例变量，其名称分别为 _firstName 与 _lastName。也可以在类的实现代码里通过 @synthesize 语法来指定实例变量的名字.
 
 ##### 3. 什么情况使用 weak 关键字，相比 assign 有什么不同？
-1. `weak`常用来防止循环引用的产生，比如`delegate`、`block`、`timer`等。使用他们作为修饰符时，都不会对其引用对象的引用计数产生印象。weak只能修饰引用类型，会在其引用对象销毁时，自定置空；assignm没有类型限制，但作用在对象时，不会有置空效果。
+1. `weak`常用来防止循环引用的产生，比如`delegate`、`block`、`timer`等。使用他们作为修饰符时，都不会对其引用对象的引用计数产生影响。weak只能修饰引用类型，会在其引用对象销毁时，自定置空；`assign`没有类型限制，但作用在对象时，不会有置空效果。
 2. weak singleton
     ![-w792](media/16390134349305.jpg)
 
@@ -124,7 +135,7 @@
 }
 ```
 ##### 4. 对象的浅拷贝、深拷贝
-1. 对 immutable 对象进行 copy 操作，是指针复制，mutableCopy 操作时内容复制；对 mutable 对象进行 copy 和 mutableCopy 都是内容复制。
+1. 对 immutable 对象进行 copy 操作，是指针复制，mutableCopy 操作是内容复制；对 mutable 对象进行 copy 和 mutableCopy 都是内容复制。
 2. 集合类型，其中的元素不会被复制。
 
 #### KVO
@@ -207,10 +218,10 @@
 6. 对于`NSArray`、`NSDictionary`、`NSMutableDictionary`、`NSOrderedSet`、`NSSet`，这些类覆写了`valueForKey:`和`setValue:forKey:`，在`NSObject`中的实现会应用类这些类的每个元素上。
 
 ##### 4. 异常处理
-1. `-[NSObject valueForKey:]`和`-[NSObject setValue:forKey:]`接收的都是`对象类型`。对应那些不是对象类型的`key`，kvc会自动转换为`NSNumber`或`NSValue`。但是对于`非对象类型`在设置值时，如传入`nil`，会异常。我们可以覆写`-[NSObject setNilValueForKey:]`来解决。
+1. `-[NSObject valueForKey:]`和`-[NSObject setValue:forKey:]`接收的都是`对象类型`。对应那些不是对象类型的`key`，`KVC`会自动转换为`NSNumber`或`NSValue`。但是对于`非对象类型`在设置值时，如传入`nil`，会异常。我们可以覆写`-[NSObject setNilValueForKey:]`来解决。
 2. `-[NSObject validateValue:forKey:error:]`可实现自定义的验证过程。但需要手动调用。
 
-##### 5. &KVO
+##### 5. 与KVO合作
 
 1. `KVC`导致的值变更，会触发`KVO`，是在`-[NSObject setValue:forKey:]`中触发。和通过属性改变值的流程不一致。![kvc触发](media/16417860631471.jpg)![-w1298](media/16417861103064.jpg)
 
@@ -447,6 +458,49 @@ int CFRunLoopRunSpecific(runloop, modeName, seconds, stopAfterHandle) {
 
 ![队列遇上函数](media/16408438299757.jpg)
 
+
+```oc
+@interface AppDelegate ()
+/// queue
+@property (nonatomic, readwrite, strong) dispatch_queue_t serial_queue;
+/// queue
+@property (nonatomic, readwrite, strong) dispatch_queue_t concurrent_queue;
+@end
+@implementation AppDelegate
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Override point for customization after application launch.
+    _serial_queue = dispatch_queue_create("queue.serial", DISPATCH_QUEUE_SERIAL);
+    _concurrent_queue = dispatch_queue_create("queue.concurrent", DISPATCH_QUEUE_CONCURRENT);
+    
+    [self taskWithIdentifier:@"1"];
+    
+    dispatch_sync(_serial_queue, ^{
+        [self taskWithIdentifier:@"2"];
+    });
+    dispatch_sync(_concurrent_queue, ^{
+        [self taskWithIdentifier:@"3"];
+    });
+    
+    dispatch_async(_serial_queue, ^{
+        [self taskWithIdentifier:@"4"];
+    });
+    dispatch_async(_concurrent_queue, ^{
+        [self taskWithIdentifier:@"5"];
+    });
+    return YES;
+}
+
+- (void)taskWithIdentifier:(NSString *)identifier {
+    NSLog(@"%@ - %@", identifier, [NSThread currentThread]);
+}
+@end
+// 1 - <_NSMainThread: 0x6000029746c0>{number = 1, name = main}
+// 2 - <_NSMainThread: 0x6000029746c0>{number = 1, name = main}
+// 3 - <_NSMainThread: 0x6000029746c0>{number = 1, name = main}
+// 5 - <NSThread: 0x60000293d740>{number = 5, name = (null)}
+// 4 - <NSThread: 0x60000292c600>{number = 7, name = (null)}
+```
+
 ##### NSOperation
 > 参考 https://developer.apple.com/documentation/foundation/nsoperation?language=objc
 
@@ -499,7 +553,7 @@ dispatch_async(queue, ^{
 子线程在启动后，完成其任务，线程就结束了。无法再次使用。
 
 #### 内存管理
-    * https://www.jianshu.com/p/713106afd7ef
+    https://www.jianshu.com/p/713106afd7ef
       
 ##### 0. 内存分布
  ![](media/16417905557018.jpg)
@@ -543,7 +597,7 @@ __weak id objA = obj0;
 ##### 4. ARC通过什么方式帮助开发者管理内存？
 「引用计数式内存管理」的本质部分在 ARC 中并没有改变，ARC 只是自动帮我们处理了「引用计数」的相关部分。
 
-###### 修饰符
+##### 5. 修饰符
 1. `__strong` 默认情况下引用类型都是这种修饰符。一个对象只要有强指针引用，就不会被释放。一个强指针就相当于增加一个引用计数。在强指针作用域结束后减少引用计数。
 2. `__weak` 弱指针，不会影响对象的引用计数，并且在指向的对象释放时，会自动置空`nil`
 3. `__unsafe_unretain` 和`__weak`类似，但不会在引用的对象释放后自动置空
@@ -551,7 +605,7 @@ __weak id objA = obj0;
 
 > [参考这里](https://juejin.cn/post/7008047831529308173)
 
-##### 5. AutoreleasePool的实现原理
+##### 6. AutoreleasePool的实现原理
 
 > 参考：https://juejin.cn/post/6844904094503567368
 
@@ -592,8 +646,7 @@ int main(int argc, const char * argv[]) {
 ###### objc_autoreleasePoolPush&objc_autoreleasePoolPop
 该函数会在`Page`中入栈一个`POOL_BOUNDARY`（其实就是nil）对象，然后将该对象地址返回，之后将这个地址传入`objc_autoreleasePoolPop`函数中，函数会从自动释放池中最后一个对象开始，依次给它们发送`release`消息，直到遇到这个`POOL_BOUNDARY`
 
-
-##### 6. __bridge, __bridge_transfer, __bridge_retained
+##### 7. __bridge, __bridge_transfer, __bridge_retained
 
 1. `__bridge`用以将 CF 对象转换为 OC 对象，或者 OC 对象转换为 CF 对象，但是不会对对象的 Retain Count、所有权产生任何影响。
 2. `__bridge_transfer`等价于 CFBridgingRelease()，将 CF 对象转换为 OC 对象，并将所有权转移给 ARC。后续无需再手动对CF对象进行释放。
